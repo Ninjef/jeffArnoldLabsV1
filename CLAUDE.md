@@ -1,0 +1,1 @@
+You can find incomplete tasks in the ./projectTasks directory. When work is complete, you may be asked to create a .md file entry in ./aiAgentWorkHistory
