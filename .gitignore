@@ -16,4 +16,4 @@ samconfig.toml
 .idea/
 
 .venv
-.claude
+.claude/settings.local.json
