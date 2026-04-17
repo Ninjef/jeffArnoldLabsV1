@@ -8,6 +8,10 @@ on:
       - '.github/workflows/infra.yml'
   workflow_dispatch:
 
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read

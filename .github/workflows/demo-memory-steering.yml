@@ -8,6 +8,10 @@ on:
       - '.github/workflows/demo-memory-steering.yml'
   workflow_dispatch:
 
+concurrency:
+  group: demo-memory-steering-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read
@@ -32,6 +36,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.DEMO_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate
+        working-directory: demos/memory-steering/backend
+        run: sam validate --lint
 
       - name: Build
         working-directory: demos/memory-steering/backend

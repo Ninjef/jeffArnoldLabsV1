@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const demos = [
+  {
+    slug: 'memory-steering',
+    title: 'Memory Steering',
+    description: 'Interactive demo of zero-shot latent space steering.',
+  },
+];
+---
+
+<Layout
+  title="Demos — Jeff Arnold Labs"
+  description="Interactive demos from Jeff Arnold."
+>
+  <h1 class="text-2xl font-semibold">Demos</h1>
+  <ul class="mt-6 space-y-4">
+    {demos.map((demo) => (
+      <li>
+        <a href={`/demos/${demo.slug}`} class="text-lg underline">{demo.title}</a>
+        <div class="text-sm text-slate-500">{demo.description}</div>
+      </li>
+    ))}
+  </ul>
+</Layout>

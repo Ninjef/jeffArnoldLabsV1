@@ -26,7 +26,10 @@ Parameters:
     Description: Set to false if the GitHub OIDC provider already exists in this account
 
 Conditions:
-  ShouldCreateOIDCProvider: !Equals [!Ref CreateOIDCProvider, 'true']
+  ShouldCreateOIDCProvider:
+    Fn::Equals:
+      - Ref: CreateOIDCProvider
+      - 'true'
 
 Resources:
 
@@ -163,6 +166,27 @@ Resources:
   # policy (4135ea2d-6df8-44a3-9df3-4b5a84be39ad) instead of a custom one.
   # Header/cookie/query forwarding is handled by ApiOriginRequestPolicy.
 
+  SiteResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-site-headers'
+        Comment: Security headers for the static site (not applied to API behaviors).
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: true
+            Preload: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+
   ApiOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
     Properties:
@@ -208,6 +232,7 @@ Resources:
           AllowedMethods: [GET, HEAD, OPTIONS]
           Compress: true
           CachePolicyId: !Ref HtmlCachePolicy
+          ResponseHeadersPolicyId: !Ref SiteResponseHeadersPolicy
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt CanonicalHostFunction.FunctionARN
@@ -218,6 +243,7 @@ Resources:
             AllowedMethods: [GET, HEAD]
             Compress: true
             CachePolicyId: !Ref AssetsCachePolicy
+            ResponseHeadersPolicyId: !Ref SiteResponseHeadersPolicy
           # ---- per-demo API behavior ----
           - PathPattern: '/demos/memory-steering/api/*'
             TargetOriginId: api-memory-steering

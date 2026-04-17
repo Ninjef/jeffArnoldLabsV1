@@ -19,11 +19,19 @@ Resources:
         AllowMethods: [GET, POST, OPTIONS]
         AllowHeaders: [Content-Type, Authorization]
 
+  HealthFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}/health'
+      RetentionInDays: 30
+
   HealthFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/health/
       Handler: app.handler
+      LoggingConfig:
+        LogGroup: !Ref HealthFunctionLogGroup
       Events:
         Health:
           Type: HttpApi
