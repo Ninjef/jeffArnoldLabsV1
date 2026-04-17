@@ -1,0 +1,51 @@
+name: infra
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: us-east-1
+      STACK_NAME: jal-infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.INFRA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate
+        run: sam validate --lint -t infra/template.yaml
+
+      - name: Deploy
+        run: |
+          sam deploy \
+            -t infra/template.yaml \
+            --stack-name "$STACK_NAME" \
+            --region "$AWS_REGION" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              DomainName=${{ vars.DOMAIN_NAME }} \
+              HostedZoneId=${{ vars.HOSTED_ZONE_ID }} \
+              GitHubOrg=${{ github.repository_owner }} \
+              GitHubRepo=${{ github.event.repository.name }}

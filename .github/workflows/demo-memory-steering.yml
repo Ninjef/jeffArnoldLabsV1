@@ -1,0 +1,45 @@
+name: demo-memory-steering
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demos/memory-steering/backend/**'
+      - '.github/workflows/demo-memory-steering.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEMO_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build
+        working-directory: demos/memory-steering/backend
+        run: sam build
+
+      - name: Deploy
+        working-directory: demos/memory-steering/backend
+        run: |
+          sam deploy \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset

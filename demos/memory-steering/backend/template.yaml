@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: memory-steering demo backend — API Gateway + Lambda(s).
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Timeout: 15
+    Architectures: [arm64]
+
+Resources:
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - https://jeffarnoldlabs.com
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [Content-Type, Authorization]
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/health/
+      Handler: app.handler
+      Events:
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Method: GET
+            Path: /health
+
+  # Export the API domain for the shared CloudFront stack to pick up.
+  # CloudFront reads this SSM parameter via {{resolve:ssm:...}}.
+  ApiDomainParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /jal/demos/memory-steering/api-domain
+      Type: String
+      Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'
+      Description: Regional domain for the memory-steering demo API. Consumed by the shared infra CloudFront stack.
+
+Outputs:
+  ApiEndpoint:
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
+  ApiDomainSsmPath:
+    Value: !Ref ApiDomainParameter

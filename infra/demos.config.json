@@ -1,0 +1,8 @@
+{
+  "demos": [
+    {
+      "name": "memory-steering",
+      "apiDomainSsmPath": "/jal/demos/memory-steering/api-domain"
+    }
+  ]
+}

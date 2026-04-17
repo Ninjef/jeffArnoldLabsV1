@@ -1,0 +1,46 @@
+---
+import SEO from '../components/SEO.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  type?: 'website' | 'article';
+  publishedTime?: Date;
+  modifiedTime?: Date;
+  tags?: string[];
+}
+
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" title="Jeff Arnold Labs" href="/rss.xml" />
+    <SEO {...props} />
+  </head>
+  <body class="bg-white text-slate-900 antialiased">
+    <header class="border-b border-slate-200">
+      <nav class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+        <a href="/" class="font-semibold">Jeff Arnold Labs</a>
+        <div class="flex gap-6 text-sm">
+          <a href="/blogs">Blog</a>
+          <a href="/demos/memory-steering">Demos</a>
+        </div>
+      </nav>
+    </header>
+    <main class="mx-auto max-w-3xl px-6 py-10">
+      <slot />
+    </main>
+    <footer class="mx-auto max-w-3xl px-6 py-10 text-sm text-slate-500">
+      &copy; {new Date().getFullYear()} Jeff Arnold
+    </footer>
+  </body>
+</html>

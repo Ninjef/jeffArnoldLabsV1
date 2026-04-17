@@ -1,0 +1,72 @@
+---
+import { SITE } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  type?: 'website' | 'article';
+  publishedTime?: Date;
+  modifiedTime?: Date;
+  tags?: string[];
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage = SITE.ogImageDefault,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  tags = [],
+} = Astro.props;
+
+const canonicalURL = new URL(canonical ?? Astro.url.pathname, SITE.url).toString();
+const ogImageURL = new URL(ogImage, SITE.url).toString();
+
+const jsonLd =
+  type === 'article'
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: title,
+        description,
+        author: { '@type': 'Person', name: SITE.author },
+        datePublished: publishedTime?.toISOString(),
+        dateModified: (modifiedTime ?? publishedTime)?.toISOString(),
+        mainEntityOfPage: canonicalURL,
+        image: ogImageURL,
+        keywords: tags.join(', '),
+      }
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: SITE.title,
+        url: SITE.url,
+        description: SITE.description,
+      };
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:image" content={ogImageURL} />
+<meta property="og:site_name" content={SITE.title} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageURL} />
+
+{publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+{modifiedTime && <meta property="article:modified_time" content={modifiedTime.toISOString()} />}
+{tags.map((tag) => <meta property="article:tag" content={tag} />)}
+
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />

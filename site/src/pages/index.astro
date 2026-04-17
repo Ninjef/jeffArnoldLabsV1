@@ -1,0 +1,35 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { SITE } from '../consts';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<Layout title={SITE.title} description={SITE.description}>
+  <section class="prose prose-slate">
+    <h1>Jeff Arnold</h1>
+    <p>
+      Notes and demos on machine learning, systems, and interpretability. The blog is
+      under <a href="/blogs">/blogs</a>. Interactive demos live under <a href="/demos/memory-steering">/demos</a>.
+    </p>
+  </section>
+
+  {posts.length > 0 && (
+    <section class="mt-12">
+      <h2 class="text-lg font-semibold">Recent posts</h2>
+      <ul class="mt-4 space-y-3">
+        {posts.slice(0, 5).map((post) => (
+          <li>
+            <a href={`/blogs/${post.slug}`} class="underline">{post.data.title}</a>
+            <span class="ml-2 text-sm text-slate-500">
+              {post.data.pubDate.toISOString().slice(0, 10)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</Layout>
