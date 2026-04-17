@@ -203,14 +203,115 @@ import MyViz from '../../components/MyViz.tsx';
 
 Props must be JSON-serializable (they cross the SSR→client boundary).
 
-## 9. SEO, feeds, and OG images
+## 9. Scroll-triggered text animations
+
+Reusable React islands that decorate inline text when it crosses a configurable line in the viewport. They live under `site/src/components/animations/` and share one hook — `useScrollTrigger` — for scroll detection. Each specific effect (e.g. `LightbulbIdea`) is its own `.tsx` file so new effects can be added without touching the existing ones.
+
+### Using an existing effect
+
+Import into an MDX post and wrap the target text. Because it's a React island, it needs a `client:*` directive — `client:visible` is usually right.
+
+```mdx
+import LightbulbIdea from '../../components/animations/LightbulbIdea.tsx';
+
+As the saying goes, <LightbulbIdea client:visible>"to be human is to come up with ideas"</LightbulbIdea>.
+```
+
+`LightbulbIdea` props:
+
+| Prop | Default | Meaning |
+|---|---|---|
+| `triggerAt` | `0.5` | Vertical fraction of viewport where the fire line sits. `0` = top edge, `0.5` = midpoint, `1` = bottom edge. |
+| `bulbStays` | `false` | If `true`, the bulb fades in and stays; the effect fires at most once per page load. If `false`, the bulb floats in and out on each crossing and re-fires on every pass. |
+
+Examples:
+
+```mdx
+<LightbulbIdea client:visible triggerAt={0.3}>fires near the top</LightbulbIdea>
+<LightbulbIdea client:visible bulbStays>marks this phrase permanently</LightbulbIdea>
+```
+
+### The shared hook
+
+`useScrollTrigger<T extends HTMLElement>(options)` returns `{ ref, fireCount }`.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `triggerAt` | `0.5` | Vertical fraction of viewport (0–1) where the fire line sits. |
+| `once` | `false` | If `true`, `fireCount` increments at most once per page load. |
+
+`fireCount` is a monotonic counter — it increments each time the element crosses the fire line from outside the zone. Use it to `key` decorative elements (so their CSS animations replay cleanly on each re-fire) and to run animation-restart effects on the stable content element.
+
+### Building a new effect
+
+Three steps:
+
+1. **Add keyframes + animation** to `site/tailwind.config.mjs` under `theme.extend`. Add `forwards` to the animation shorthand if the end state should be retained (see gotcha below).
+
+   ```js
+   keyframes: {
+     'sparkle-pop': {
+       '0%':   { opacity: '0', transform: 'scale(0.5)' },
+       '50%':  { opacity: '1', transform: 'scale(1.2)' },
+       '100%': { opacity: '0', transform: 'scale(1.0)' },
+     },
+   },
+   animation: {
+     'sparkle-pop': 'sparkle-pop 0.8s ease-out forwards',
+   },
+   ```
+
+2. **Create a component** in `site/src/components/animations/<YourEffect>.tsx`. Use the shared hook and follow the `LightbulbIdea` shape — stable ref'd children span, plus keyed decorations:
+
+   ```tsx
+   import { useEffect, useRef, type ReactNode } from 'react';
+   import { useScrollTrigger } from './useScrollTrigger';
+
+   type Props = { children: ReactNode; triggerAt?: number };
+
+   export default function SparklePop({ children, triggerAt }: Props) {
+     const { ref, fireCount } = useScrollTrigger<HTMLSpanElement>({ triggerAt });
+     const textRef = useRef<HTMLSpanElement>(null);
+
+     useEffect(() => {
+       if (fireCount === 0) return;
+       const el = textRef.current;
+       if (!el) return;
+       el.classList.remove('animate-sparkle-text');
+       void el.offsetWidth;
+       el.classList.add('animate-sparkle-text');
+     }, [fireCount]);
+
+     return (
+       <span ref={ref} className="relative inline-block">
+         {fireCount > 0 && (
+           <span key={`s-${fireCount}`} aria-hidden="true" className="pointer-events-none absolute -top-5 left-1/2 animate-sparkle-pop">
+             ✨
+           </span>
+         )}
+         <span ref={textRef}>{children}</span>
+       </span>
+     );
+   }
+   ```
+
+3. **Import and use in MDX** with a `client:*` directive, like `LightbulbIdea`.
+
+### Gotchas (learned the hard way)
+
+- **Never put `{children}` inside an element whose `key` changes.** MDX children are delivered via Astro's island slot mechanism and don't survive React remounts. Keep the element containing `{children}` stable (no `key`); use the reflow trick (`remove class` → `void el.offsetWidth` → `add class`) to replay its animation. Decorative elements with literal contents (an emoji, an SVG) *can* safely be keyed on `fireCount`.
+- **Use `animation-fill-mode: forwards` when the end state matters.** Without it, CSS animations snap back to the element's natural pre-animation style when they finish — so a keyframe ending at `opacity: 0` reverts to `opacity: 1` once the animation completes. Add `forwards` to the animation shorthand in `tailwind.config.mjs`.
+- **Island props must be JSON-serializable** (see §8). Numbers, strings, booleans, plain objects — fine. Functions, refs, class instances — no.
+- **`client:visible` is fine for viewport-midpoint triggers.** The component hydrates as it enters the viewport, which is before it crosses the midpoint — the IntersectionObserver is ready in time.
+
+## 10. SEO, feeds, and OG images
 
 - **Per-page metadata:** pass `title`, `description`, optional `ogImage`, optional `tags` to `<Layout>`. Blog posts do this automatically from frontmatter.
 - **Sitemap:** auto-built by `@astrojs/sitemap` at `/sitemap-index.xml`. Includes every generated route.
 - **RSS:** `site/src/pages/rss.xml.ts` emits a feed of non-draft blog posts.
 - **OG images:** `astro-og-canvas` is installed but not wired up yet. A generation pipeline is on the TODO list in the initial work history; for now, ship a static image under `site/public/og/` and reference it via the `ogImage` frontmatter field (or `ogImage` prop to `<Layout>`).
 
-## 10. Gotchas & constraints
+## 11. Gotchas & constraints
 
 - **Pinned `@astrojs/sitemap@3.2.1`.** Newer versions (3.7+) require Astro 5. Don't bump until Astro itself is upgraded.
 - **`trailingSlash: 'never'` + `build.format: 'directory'`.** URLs are `/blogs/hello-world` (no trailing slash), but the build emits `blogs/hello-world/index.html`. CloudFront has a function that maps one to the other — don't change either setting independently.
@@ -219,12 +320,12 @@ Props must be JSON-serializable (they cross the SSR→client boundary).
 - **MDX over `.md` for interactivity.** Plain `.md` can't import components; `.mdx` can. Use `.mdx` if you expect ever to embed a component.
 - **Node 20 target.** `.nvmrc` says 20. Local dev on 18 currently works but CI builds on 20.
 
-## 11. Deploy flow (quick summary)
+## 12. Deploy flow (quick summary)
 
 - Push to `main` with changes under `site/**` → GitHub Actions builds Astro, syncs to S3, invalidates CloudFront. See `.github/workflows/site.yml`.
 - Demo backend changes (`demos/<name>/backend/**`) and infra changes (`infra/**`) have their own workflows — unrelated to content authoring.
 
-## 12. Common recipes
+## 13. Common recipes
 
 - **Change the site title** → `site/src/consts.ts`.
 - **Add a nav link** → `site/src/layouts/Layout.astro` (the `<nav>` block).
