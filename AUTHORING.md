@@ -205,31 +205,64 @@ Props must be JSON-serializable (they cross the SSR→client boundary).
 
 ## 9. Scroll-triggered text animations
 
-Reusable React islands that decorate inline text when it crosses a configurable line in the viewport. They live under `site/src/components/animations/` and share one hook — `useScrollTrigger` — for scroll detection. Each specific effect (e.g. `LightbulbIdea`) is its own `.tsx` file so new effects can be added without touching the existing ones.
+Reusable React islands that decorate inline text when it crosses a configurable line in the viewport. They live under `site/src/components/animations/` and share one hook — `useScrollTrigger` — for scroll detection. Each specific effect is its own `.tsx` file so new effects can be added without touching the existing ones.
 
 ### Using an existing effect
 
 Import into an MDX post and wrap the target text. Because it's a React island, it needs a `client:*` directive — `client:visible` is usually right.
 
-```mdx
-import LightbulbIdea from '../../components/animations/LightbulbIdea.tsx';
-
-As the saying goes, <LightbulbIdea client:visible>"to be human is to come up with ideas"</LightbulbIdea>.
-```
-
-`LightbulbIdea` props:
+Every effect accepts:
 
 | Prop | Default | Meaning |
 |---|---|---|
 | `triggerAt` | `0.5` | Vertical fraction of viewport where the fire line sits. `0` = top edge, `0.5` = midpoint, `1` = bottom edge. |
-| `bulbStays` | `false` | If `true`, the bulb fades in and stays; the effect fires at most once per page load. If `false`, the bulb floats in and out on each crossing and re-fires on every pass. |
+| `repeat` | `false` | If `false` (default), the effect fires once per page load. If `true`, it replays every time the element re-crosses the fire line. |
 
-Examples:
+#### `EmojiTextFlashAnimation` — emoji floats in above, text flashes a color
 
 ```mdx
-<LightbulbIdea client:visible triggerAt={0.3}>fires near the top</LightbulbIdea>
-<LightbulbIdea client:visible bulbStays>marks this phrase permanently</LightbulbIdea>
+import EmojiTextFlashAnimation from '../../components/animations/EmojiTextFlashAnimation.tsx';
+
+<EmojiTextFlashAnimation client:visible emoji="💡" color="#ca8a04">
+  "to be human is to come up with ideas"
+</EmojiTextFlashAnimation>
 ```
+
+Extra props: `emoji` (any string — e.g. `"💡"`, `"🔥"`, `"🦀"`), `color` (any CSS color; default `"#ca8a04"`).
+
+#### `SequentialTextGlow` — 2–4 text segments glow in order, each in its own color
+
+```mdx
+import SequentialTextGlow, { GlowSegment } from '../../components/animations/SequentialTextGlow.tsx';
+
+<SequentialTextGlow client:visible stepMs={450}>
+  <GlowSegment color="#ef4444">First</GlowSegment>, then
+  <GlowSegment color="#3b82f6"> second</GlowSegment>, and finally
+  <GlowSegment color="#22c55e"> third</GlowSegment>.
+</SequentialTextGlow>
+```
+
+Non-`GlowSegment` text between segments passes through unanimated. Extra prop: `stepMs` (stagger between segments in ms; default `400`).
+
+#### `EmojiStretchBlur` — an emoji streaks and blurs horizontally across the phrase
+
+```mdx
+import EmojiStretchBlur from '../../components/animations/EmojiStretchBlur.tsx';
+
+<EmojiStretchBlur client:visible emoji="🚂" direction="right">GO FAST!</EmojiStretchBlur>
+```
+
+Extra props: `emoji`, `direction` (`"right"` or `"left"`; default `"right"`). Emoji sits behind the text (`z-index: -1`) so the words stay readable.
+
+#### `EmojiExpand` — an emoji balloons out from the text and fades
+
+```mdx
+import EmojiExpand from '../../components/animations/EmojiExpand.tsx';
+
+<EmojiExpand client:visible emoji="💥" speed="fast">BOOM</EmojiExpand>
+```
+
+Extra props: `emoji`, `speed` (`"fast"` ≈ 0.7s, `"slow"` ≈ 1.8s; default `"fast"`).
 
 ### The shared hook
 
@@ -261,7 +294,7 @@ Three steps:
    },
    ```
 
-2. **Create a component** in `site/src/components/animations/<YourEffect>.tsx`. Use the shared hook and follow the `LightbulbIdea` shape — stable ref'd children span, plus keyed decorations:
+2. **Create a component** in `site/src/components/animations/<YourEffect>.tsx`. Use the shared hook and follow the `EmojiTextFlashAnimation` shape — stable ref'd children span, plus keyed decorations:
 
    ```tsx
    import { useEffect, useRef, type ReactNode } from 'react';
@@ -295,7 +328,7 @@ Three steps:
    }
    ```
 
-3. **Import and use in MDX** with a `client:*` directive, like `LightbulbIdea`.
+3. **Import and use in MDX** with a `client:*` directive, like the effects above.
 
 ### Gotchas (learned the hard way)
 

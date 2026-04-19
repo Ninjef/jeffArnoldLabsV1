@@ -9,18 +9,22 @@ tags: ["embeddings", "rag", "llm", "latent-space"]
 import { Image } from 'astro:assets';
 import usageLimits from './latent-space-steering-part-1/usage-limits.png';
 import giphy from './latent-space-steering-part-1/giphy.gif';
-import LightbulbIdea from '../../components/animations/LightbulbIdea.tsx';
+import EmojiTextFlashAnimation from '../../components/animations/EmojiTextFlashAnimation.tsx';
+import SequentialTextGlow, { GlowSegment } from '../../components/animations/SequentialTextGlow.tsx';
+import EmojiStretchBlur from '../../components/animations/EmojiStretchBlur.tsx';
+import LightningStrike from '../../components/animations/LightningStrike.tsx';
+import EmojiExpand from '../../components/animations/EmojiExpand.tsx';
 
-# Dime a Dozen?
+## Dime a Dozen?
 I’m trying to come up with a hook for my intro to this blog post. Thankfully, that’s actually the point of the blog post.
 
 It’s about leveraging AI to help automate the process of coming up with ideas. Not just any random “dime a dozen” ideas, but the sometimes subtle, yet unique insights which carry the potential to make a difference.
 
-As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, <LightbulbIdea client:visible triggerAt={0.3} bulbStays={false}>“to be human is to come up with ideas”</LightbulbIdea>.
+As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, <EmojiTextFlashAnimation client:visible emoji="💡" color="#ca8a04" triggerAt={0.25}>“to be human is to come up with ideas”</EmojiTextFlashAnimation>.
 
 And it’s not just a human quirk. Without new ideas, nothing moves forward! Not this blog post, not technology, not society; heck not even personal improvement can happen without them. We must always be connecting the dots; it’s the foundation of experimentation and discovery.
 
-Some ideas change the world, like “what if matter and energy are the same thing?” (Einstein).
+Some ideas change the world, like <SequentialTextGlow triggerAt={0.25} client:visible stepMs={450}>“what if <GlowSegment color="#22c55e">matter</GlowSegment> and <GlowSegment color="#3b82f6">energy</GlowSegment> are the <GlowSegment color="#ca8a04">same thing</GlowSegment>?”</SequentialTextGlow> (Einstein).
 
 Sometimes ideas are far less earth-shattering, like “I should stop loading my dishwasher that way.”
 
@@ -32,7 +36,7 @@ The way AI currently works is that we come to it with a request or thought. But 
 
 Or
 
-“Omg. I got a new idea for your business - check this out…”
+“<EmojiExpand client:visible emoji="💥" speed="fast" triggerAt={0.25}>OMG</EmojiExpand>. I got a new idea for your business - check this out…”
 
 Or
 
@@ -40,7 +44,7 @@ Or
 
 Much like a friend who knows you and thinks about you even when you’re not together. It processes things when you’re not around, and comes up with new ideas, new insights, that may be helpful to you.
 
-# The Spark
+## <LightningStrike client:visible triggerAt={0.25}>The Spark</LightningStrike>
 
 Exploring how AI can come up with new ideas is a topic very close to my heart. But of the myriad ways to try and move the needle on this topic, I opted for a fun, quick experiment to show whether we could do this quickly and cheaply. So let’s get into it.
 
@@ -58,7 +62,7 @@ What if I woke up and my AI tapped me on the shoulder and said, “Jeff, you tol
 
 That’s what I’m after. And I want a ***cheap, simple*** way to go about getting AI to do this.
 
-# Magic Math: Text Embeddings
+## Magic Math: Text Embeddings
 
 The next couple sections are background. If you already have a good understanding of text embeddings, you can skip them.
 
