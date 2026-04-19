@@ -9,14 +9,14 @@ Scaffold a new blog post by duplicating the template at `site/src/content/blog/t
 
 ## Inputs to gather
 
-Use `AskUserQuestion` to collect all three in one prompt:
+Use `AskUserQuestion` to collect the gist of the new article, but only if they did not provide one already after typing the skill name
 
-1. **title** — human-readable post title (e.g. "Notes on retrieval eval").
-2. **description** — one-sentence summary for meta tags and the blog index.
-3. **gist** — 1–3 sentences on what the post will cover; used to derive tags.
+**gist** — 1–3 sentences on what the post will cover; used to derive tags.
 
 After collecting, derive:
 
+- **title** - the title of the article (user can always change this later)
+- **description** - a summary of what the article is about - will go in the astro parameters
 - **slug** — kebab-case from the title: lowercase, replace non-alphanumerics with `-`, collapse and trim dashes. Keep it short (≤ 5 words). Show the derived slug to the user in your next message and proceed unless they push back.
 - **tags** — 2–4 short keywords pulled from the gist. Lowercase, single-word when possible. Put them in the frontmatter; the user can edit after.
 - **pubDate** — today's date in `YYYY-MM-DD`.
