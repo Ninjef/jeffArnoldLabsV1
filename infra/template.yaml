@@ -181,7 +181,7 @@ Resources:
           ContentTypeOptions:
             Override: true
           FrameOptions:
-            FrameOption: DENY
+            FrameOption: SAMEORIGIN
             Override: true
           ReferrerPolicy:
             ReferrerPolicy: strict-origin-when-cross-origin

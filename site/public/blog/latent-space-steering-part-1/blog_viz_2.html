@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>run_20260423_003334_turbo-puffin — Steered Embedding Space</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; color: #eee; font-family: system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: rgba(0,0,0,0.85); color: #fff; padding: 10px 14px;
+    border-radius: 6px; font-size: 13px; max-width: 360px;
+    line-height: 1.4; border: 1px solid rgba(255,255,255,0.15);
+  }
+  #tooltip .cluster-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; font-weight: 600; margin-bottom: 6px;
+  }
+  .pinned-tooltip {
+    position: absolute; pointer-events: auto;
+    background: rgba(0,0,0,0.9); color: #fff;
+    padding: 0.75em 1em; border-radius: 0.45em;
+    font-size: max(0.9vw, 10px); max-width: 25vw;
+    line-height: 1.4; border: 1px solid rgba(255,255,255,0.3);
+    z-index: 90; cursor: grab; user-select: none;
+  }
+  .pinned-tooltip.dragging { cursor: grabbing; }
+  .pinned-tooltip .cluster-tag {
+    display: inline-block; padding: 0.15em 0.6em; border-radius: 0.2em;
+    font-size: 0.85em; font-weight: 600; margin-bottom: 0.45em;
+  }
+  .pinned-tooltip .pin-close {
+    position: absolute; top: 0.3em; right: 0.6em;
+    cursor: pointer; opacity: 0.5; font-size: 1.05em;
+  }
+  .pinned-tooltip .pin-close:hover { opacity: 1; }
+  #pin-lines {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 89;
+  }
+  .pin-dot {
+    position: absolute; width: max(0.55vw, 6px); height: max(0.55vw, 6px);
+    border-radius: 50%; border: max(0.14vw, 1.5px) solid rgba(255,255,255,0.8);
+    pointer-events: none; z-index: 91;
+    transform: translate(-50%, -50%);
+  }
+  #legend {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(0,0,0,0.7); padding: 14px 18px;
+    border-radius: 8px; font-size: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+    max-height: 80vh; overflow-y: auto;
+  }
+  #legend h3 { margin-bottom: 8px; font-size: 14px; }
+  .legend-item { display: flex; align-items: center; margin: 4px 0; }
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 50%;
+    margin-right: 8px; flex-shrink: 0;
+  }
+  .legend-swatch.diamond {
+    border-radius: 0; transform: rotate(45deg);
+    width: 10px; height: 10px;
+  }
+  #controls {
+    position: absolute; bottom: 16px; right: 16px;
+    background: rgba(0,0,0,0.7); padding: 10px 14px;
+    border-radius: 8px; font-size: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  #controls label {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    user-select: none;
+  }
+  #controls input[type="checkbox"] { cursor: pointer; }
+  #copy-preset {
+    display: block; margin-top: 8px; padding: 6px 12px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: #eee; border-radius: 4px; cursor: pointer; font-size: 12px;
+    width: 100%;
+  }
+  #copy-preset:hover { background: rgba(255,255,255,0.2); }
+  #copy-preset.copied { background: rgba(100,200,100,0.3); border-color: rgba(100,200,100,0.5); }
+  #info {
+    position: absolute; bottom: 16px; left: 16px;
+    font-size: 12px; opacity: 0.5;
+  }
+  #run-name {
+    position: absolute; top: 16px; left: 16px;
+    font-size: 18px; font-weight: 600; opacity: 0.85;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+  #config-panel {
+    position: absolute; top: 50px; left: 16px;
+    background: rgba(0,0,0,0.7); padding: 14px 18px;
+    border-radius: 8px; font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    max-width: 320px; max-height: 60vh; overflow-y: auto;
+  }
+  #config-panel h3 {
+    margin-bottom: 8px; font-size: 13px; font-weight: 600;
+    opacity: 0.9;
+  }
+  #config-panel table { border-collapse: collapse; width: 100%; }
+  #config-panel td {
+    padding: 3px 0; vertical-align: top; line-height: 1.4;
+  }
+  #config-panel td.cfg-key {
+    color: rgba(255,255,255,0.5); padding-right: 12px; white-space: nowrap;
+  }
+  #config-panel td.cfg-val {
+    color: rgba(255,255,255,0.85); word-break: break-word;
+  }
+  #config-panel .cfg-section {
+    margin-top: 8px; padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  #config-panel { display: none !important; }
+</style>
+</head>
+<body>
+<div id="run-name"></div>
+<div id="config-panel"></div>
+<div id="tooltip"></div>
+<svg id="pin-lines"></svg>
+<div id="legend"></div>
+<div id="controls"></div>
+<div id="info">Click point to pin text &middot; Esc to clear &middot; Drag to rotate &middot; Scroll to zoom</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const DATA = [{"id": "8c80e063-1867-4314-9a70-ba2b86e4a999", "cluster": 1, "x": 1.49302, "y": 1.97679, "z": 4.18814, "text": "Hey Dave! Nice to meet you! How's it going since we talked?", "type": "memory"}, {"id": "2053e3c0-4190-4b89-9f51-474fe4690b7f", "cluster": 0, "x": 7.00868, "y": -7.92445, "z": 4.2255, "text": "Hey Calvin! Nice to meet you too! Things have been going well since we last talked. I attended this awesome event recently. It was like a car lover's paradise! They had so many classic cars on show, I", "type": "memory"}, {"id": "f6181e92-c6a0-4479-b3ab-82460836ad82", "cluster": 2, "x": 0.39664, "y": 3.34437, "z": 2.65112, "text": "That event sounds great! Something really exciting happened to me - I just had a big life change! Here's my new mansion - pretty cool huh?", "type": "memory"}, {"id": "8772e372-94a3-4fcf-9d05-ee0f675c4ea5", "cluster": 3, "x": -0.51937, "y": 4.42736, "z": 1.59484, "text": "Wow! Congrats on the big change! What inspired you to start this journey?", "type": "memory"}, {"id": "1b492613-7732-4c39-8f4d-25c6fa3469f0", "cluster": 3, "x": -1.89978, "y": 6.08163, "z": 0.38729, "text": "I'm so excited to learn about Japanese culture and get a chance to expand.", "type": "memory"}, {"id": "6f5e9580-2f8e-4371-be3c-7deb1a2873fc", "cluster": 2, "x": -0.3085, "y": 4.14118, "z": 1.78292, "text": "Wow, Calvin, learning about new cultures is awesome! Have you ever been to Japan?", "type": "memory"}, {"id": "cf191c49-3470-4e32-b6de-37e60b33c0c9", "cluster": 2, "x": 0.0966, "y": 3.75565, "z": 2.15714, "text": "Never been there before. Fascinated by the traditions and can't wait to get a taste of the culture.", "type": "memory"}, {"id": "822f8ffb-c3f4-4f3d-a376-3b2fb3d322ce", "cluster": 1, "x": 2.29326, "y": -1.65072, "z": 4.32759, "text": "Wow, Japan sounds amazing. Can't wait to hear all about it! When are you leaving?", "type": "memory"}, {"id": "a3ea4cdc-bdc6-4214-8017-9a58ee8f00d5", "cluster": 1, "x": 2.82149, "y": -2.59381, "z": 4.26988, "text": "I'm heading there next month. I'll be staying in such a nice place while I'm there.\n\n", "type": "memory"}, {"id": "d069bf5c-5972-49d8-acf8-e9045a5bd8b0", "cluster": 0, "x": 5.70834, "y": -6.33227, "z": 4.37904, "text": "That looks cozy! Where'd you find a place to stay there?", "type": "memory"}, {"id": "da5a01bb-ad36-46a4-99c1-e22541086bdb", "cluster": 1, "x": 1.53399, "y": 1.55278, "z": 4.51921, "text": "Wow, my agent found me this awesome place, so thankful!", "type": "memory"}, {"id": "347d62d3-235e-4756-879f-9f3f82e312a9", "cluster": 2, "x": 0.76758, "y": 2.86658, "z": 3.10492, "text": "Awesome! Having a place to stay is key. What are your plans for the trip?", "type": "memory"}, {"id": "f1105f7f-4e9c-4aee-8def-89a55d8d0f4e", "cluster": 2, "x": 0.24099, "y": 3.56087, "z": 2.29226, "text": "I'm planning to explore the city, try out different local cuisines, and perhaps collaborate with musicians in the area.", "type": "memory"}, {"id": "e72aa37a-e142-43a9-ae7b-fa15e20653db", "cluster": 2, "x": 0.60156, "y": 2.98421, "z": 2.95581, "text": "Sounds great! Collaborating with local musicians would be an amazing experience. How long are you planning to stay in Japan?", "type": "memory"}, {"id": "6ae93d3d-6e27-4120-b9ef-35135ec23756", "cluster": 1, "x": 1.72767, "y": 1.39102, "z": 4.50236, "text": "I'm gonna be in Japan for a few months then off to Boston! I can't wait!", "type": "memory"}, {"id": "bb333780-f727-4074-9728-af9ec5e117f4", "cluster": 0, "x": 8.02711, "y": -9.65886, "z": 4.78778, "text": "That's great, can't wait for you to return from your trip. I've been spending lots of time at this beautiful park lately - so calming. Have you been there before?", "type": "memory"}, {"id": "cfa4cbf0-e5b9-488f-8d0b-1250f609f8d7", "cluster": 0, "x": 8.32617, "y": -10.0271, "z": 4.74938, "text": "No, I've never been in that park. Looks like a chill spot. I'll definitely check it out when I'm back. Appreciate the tip!", "type": "memory"}, {"id": "f148dd30-cd9b-4bda-86bc-783f4c1b0a7d", "cluster": 1, "x": 2.1388, "y": -1.35363, "z": 4.26039, "text": "Cool! Enjoy your trip! Let me know if you need any more recommendations. Have fun!", "type": "memory"}, {"id": "4610a0c1-9d0c-46d5-82ab-e932936e4611", "cluster": 1, "x": 2.68865, "y": -2.23956, "z": 4.30907, "text": "Thanks, Dave! If I need any help, I'll be sure to let you know. Stay safe!", "type": "memory"}, {"id": "7adf0b2b-ecb6-420b-bb2b-ef22c9383f53", "cluster": 0, "x": 5.89996, "y": -6.612, "z": 4.34779, "text": "Hey Dave, been a few days, so I wanted to let you in on some cool news.  I just got a new car and it's amazing! Finally owning a luxury car was a dream come true and I'm so stoked.", "type": "memory"}, {"id": "9590dc35-5fe7-4b3f-a495-9e98086fe32c", "cluster": 2, "x": -0.126, "y": 3.92865, "z": 2.04786, "text": "Woohoo, Calvin! Congrats on the new car! How's it driving?", "type": "memory"}, {"id": "506ffaa5-59d2-4102-9dbd-2ddaa1849b67", "cluster": 2, "x": 0.14858, "y": 3.67872, "z": 2.16229, "text": "Nice car! It's an amazing ride - super smooth and real powerful. Like a rockstar behind the wheel! Thanks, man!", "type": "memory"}, {"id": "432d935c-b3a6-4fdf-b2ce-b259eaf9bd07", "cluster": 1, "x": 1.35878, "y": 2.09111, "z": 4.00513, "text": "Wow, Calvin! Owning something like this must feel amazing. Is this your first one? Show me a pic! What's it called?", "type": "memory"}, {"id": "ca837a5a-b117-45b7-8f9a-2ebbafd36439", "cluster": 1, "x": 1.82392, "y": 0.50147, "z": 4.65065, "text": "Woohoo! I finally got myself this beauty. Here's a pic from yesterday when I took it for a ride. Can't believe I'm actually driving it. Definitely what I deserve after all this hard work. Every time I", "type": "memory"}, {"id": "e790daa0-2592-4f14-9a5a-492001f946ac", "cluster": 3, "x": -1.14435, "y": 4.85699, "z": 1.10476, "text": "Calvin, that car looks awesome! You must feel amazing every time you get inside! You deserved it - congrats buddy!", "type": "memory"}, {"id": "5d75cffd-a596-4b15-9ddf-eb02bb264a06", "cluster": 1, "x": 1.78849, "y": 1.16958, "z": 4.48338, "text": "Woah, I'm on cloud nine! Hard work pays off. What's up with you, Dave?", "type": "memory"}, {"id": "f31e69fe-ab22-4e7b-b3fd-30fa6a96003c", "cluster": 0, "x": 7.02868, "y": -7.766, "z": 4.30096, "text": "Thanks, Calvin! Doing good. Last weekend, I went to a music festival in Boston - it was awesome! So many cool bands playing and the atmosphere was electric. I love music, it reminded me why I love it.", "type": "memory"}, {"id": "e51a41c9-4da0-4ee8-bea8-9e9476805acb", "cluster": 2, "x": 0.68004, "y": 2.99427, "z": 2.8938, "text": "Wow, sounds like a blast! Which one was your favorite?", "type": "memory"}, {"id": "4273b6e2-7886-4b6b-a54a-cc47f16d895c", "cluster": 0, "x": 7.34475, "y": -8.21637, "z": 4.4929, "text": "Wow, there were so many great bands! If I had to pick a favorite, it would definitely be Aerosmith. Their performance was incredible. I'll show you a pic I took when they were playing.", "type": "memory"}, {"id": "0ec4999c-5fba-4aa2-ad2e-5a84eaec7a53", "cluster": 3, "x": -1.59212, "y": 5.74109, "z": 0.42363, "text": "Cool! Lovin' Aerosmith.", "type": "memory"}, {"id": "919a5083-1eff-460f-bfbf-19eb9ec2877f", "cluster": 0, "x": 7.15405, "y": -7.98306, "z": 4.32853, "text": "I finally saw them live and it was such an amazing experience! He was jamming out to one of their hits. Check out this epic picture of them!", "type": "memory"}, {"id": "ee784a4a-1aac-4038-8e78-64fd96af5355", "cluster": 0, "x": 8.37403, "y": -10.19921, "z": 4.70836, "text": "Cool, Dave! Seeing your favorite singers live must have been wild! Did you get a chance to hang out with them after the show?", "type": "memory"}, {"id": "5441e0c0-e034-4886-b0ea-30f0c25b91d7", "cluster": 0, "x": 8.15043, "y": -9.99602, "z": 4.67977, "text": "Nah, didn't get to hang with them after the show, but seeing them live was cool enough. It's always a dream to see your favorites performing!", "type": "memory"}, {"id": "e8c0c8d1-81cd-4266-84c9-1dbb84354970", "cluster": 3, "x": -1.74212, "y": 5.87447, "z": 0.35416, "text": "Yeah, it's always a dream to see your favorites doing their thing! So glad you got to experience that.", "type": "memory"}, {"id": "f41b5774-52f7-427c-827e-db87b9f81a2f", "cluster": 3, "x": -2.0923, "y": 6.45774, "z": 0.02635, "text": "Thanks, Calvin! Yeah, it was an incredible experience. So, anything new happening in your life?", "type": "memory"}, {"id": "7bd67821-36ec-4723-a0b0-b54edf03b613", "cluster": 1, "x": 1.89759, "y": 0.10498, "z": 4.64623, "text": "Got a new ride and wrote some new tunes - had a few studio sessions last week and I'm excited to collaborate. Can't wait to share it with everyone!", "type": "memory"}, {"id": "c2ec8bb6-7b29-4200-9a54-e8afda3a2f55", "cluster": 1, "x": 1.75209, "y": 1.72432, "z": 4.39953, "text": "Cool, Calvin! Looking forward to hearing your new tunes. Keep me updated on how your collaborations go!", "type": "memory"}, {"id": "b448eb3f-7b57-4007-9a93-ff8f9e234183", "cluster": 1, "x": 1.58912, "y": 1.2525, "z": 4.68491, "text": "Yeah, no worries! I'll definitely let you know how it goes. Cheers!", "type": "memory"}, {"id": "c852fdcb-e052-49f1-a570-8520668972b5", "cluster": 2, "x": 0.34338, "y": 3.56331, "z": 2.18915, "text": "Enjoy the collaborations, Calvin! Stay safe!", "type": "memory"}, {"id": "72cf5425-3762-4b2d-925a-7b2ba2c69f6e", "cluster": 2, "x": 0.46666, "y": 3.05998, "z": 2.92362, "text": "Thanks, Dave! Gonna have fun and stay safe with it. Bye!", "type": "memory"}, {"id": "2c070ff4-e4be-4cd1-857c-9432c779c892", "cluster": 0, "x": 6.65849, "y": -7.24051, "z": 4.21874, "text": "Hey Dave! Long time no see. I just went to an awesome music thingy in Tokyo - so cool!", "type": "memory"}, {"id": "1d762d73-c820-4693-9913-659aeb90b5d0", "cluster": 0, "x": 5.6722, "y": -6.29451, "z": 4.39019, "text": "Hey Calvin! Great to hear from you. How was the music thingy in Tokyo? See any cool bands?", "type": "memory"}, {"id": "0c000809-4526-42dd-89ba-2da8c0386105", "cluster": 0, "x": 7.54131, "y": -8.92428, "z": 4.69789, "text": "Hey Dave! The festival in Tokyo was awesome! Didn't see any bands, but met lots of talented artists and industry people. Totally enriching!", "type": "memory"}, {"id": "986e830d-4e88-486f-94c9-edda866fe9a7", "cluster": 3, "x": -1.39392, "y": 5.582, "z": 0.55184, "text": "Wow, Calvin, sounds great! What did you learn from it?", "type": "memory"}, {"id": "95741fa9-663a-4e61-9fad-b58882f61ad1", "cluster": 3, "x": -2.08749, "y": 6.12415, "z": 0.19931, "text": "I learned a lot and got some great advice from professionals in the music industry. It was inspiring!", "type": "memory"}, {"id": "6959915c-4d5f-4818-b867-78c85fa282c4", "cluster": 3, "x": -1.19187, "y": 5.11775, "z": 0.98233, "text": "Wow, Calvin! Bet that was inspiring being surrounded by professionals. Did you get any advice from them?", "type": "memory"}, {"id": "14601eeb-f8bf-4a4c-b77f-a874b81d4cd2", "cluster": 3, "x": -1.96736, "y": 6.23184, "z": 0.30208, "text": "The producer gave me some advice to stay true to myself and sound unique. It got me thinking about where I want my music to go. It's really motivating!", "type": "memory"}, {"id": "98a6d2f1-4cee-4c8b-81b6-f25088ad5113", "cluster": 3, "x": -2.28794, "y": 6.26306, "z": 0.1708, "text": "Wow, Calvin! It's really motivating to see you staying true to yourself. It got me thinking, where do you see your music taking you?", "type": "memory"}, {"id": "2c134216-256d-4c72-8134-a2b1940a7738", "cluster": 1, "x": 2.57886, "y": -2.24819, "z": 4.24235, "text": "Thanks, Dave! I'm dreaming of touring the world, performing for different people and connecting with them. I hope my music can reach a global audience and make an impact. I'm also looking forward to m", "type": "memory"}, {"id": "7acf90cd-c169-464a-8a13-01170a221785", "cluster": 0, "x": 8.28515, "y": -10.0961, "z": 4.63653, "text": "Sounds like an amazing plan, Cal! I can't wait for your trip to Boston. I'll show you around town and all the cool spots. The music scene there is awesome, with places like Paradise Rock, House of Blu", "type": "memory"}, {"id": "87d1ed21-d03b-4ba6-98bf-0b4580854f35", "cluster": 0, "x": 6.97786, "y": -7.60135, "z": 4.44384, "text": "Wow, Boston looks great! Thanks for the tips. And, awesome pic!", "type": "memory"}, {"id": "6013bb79-8691-4ed3-812a-ad0e05739f4b", "cluster": 0, "x": 6.85267, "y": -7.82538, "z": 4.27789, "text": "Last weekend I went to a car show. Classic cars are so charming and the dedication people put into restoring them is amazing. That's why I'm so into auto engineering. Can't wait to show you some when ", "type": "memory"}, {"id": "e2fb88ca-af74-4931-947c-7b1f0f9b837f", "cluster": 0, "x": 6.83839, "y": -7.62216, "z": 4.28004, "text": "Wow, Dave, that car looks great! Take a look at my car, I put a lot of work into it. Can't wait to see more when I'm in Boston!", "type": "memory"}, {"id": "ec98702c-fea3-4243-be39-11db99eaf4f2", "cluster": 0, "x": 6.73994, "y": -7.53289, "z": 4.04571, "text": "Thanks! It definitely took a lot of work. Have you had a chance to check out Boston apart from the gigs?", "type": "memory"}, {"id": "e0330a11-48dc-40c8-ae5a-739e86c124df", "cluster": 0, "x": 6.31239, "y": -7.03274, "z": 4.26207, "text": "Not yet, been pretty busy with rehearsals and traveling. But I'm looking forward to exploring the city, trying out some delicious food, and visiting the popular attractions. Maybe we can grab a bite t", "type": "memory"}, {"id": "ddf14038-65a0-4d94-93a5-48747d2e0477", "cluster": 0, "x": 7.47087, "y": -8.6693, "z": 4.47097, "text": "Definitely, Cal! Let's grab some food and I'll show you my favorite spots in the city. Can't wait to show them to you!", "type": "memory"}, {"id": "a85c40c7-845c-4130-9122-936cc9b0824d", "cluster": 1, "x": 1.99174, "y": -1.08302, "z": 4.43823, "text": "Sounds great, Dave! Can't wait to try out the food there with you. It'll be fun!", "type": "memory"}, {"id": "a5ebc7f0-7c03-4cb5-be9a-7044842658fc", "cluster": 1, "x": 2.02114, "y": -0.84327, "z": 4.42703, "text": "It'll be great, Cal! Can't wait to show you the amazing music and food here. See you soon!", "type": "memory"}, {"id": "5a6a7ab2-d879-4015-a2e4-135bc068a318", "cluster": 1, "x": 1.73637, "y": 0.4057, "z": 4.60097, "text": "Hey Calvin, long time no see! A lot's been happening since we last talked. Guess what? I finally opened my own car maintenance shop! It's so satisfying to have a spot to work on cars - it's like a dre", "type": "memory"}, {"id": "a0b6123d-175a-468c-bffa-00a992c1b8d4", "cluster": 2, "x": 0.42155, "y": 3.19319, "z": 2.6338, "text": "Wow Dave! Congrats on opening your own car maintenance shop! It looks like all your hard work and dedication paid off.", "type": "memory"}, {"id": "05ef0018-a71f-42b2-9a5e-2ec78ea860cf", "cluster": 1, "x": 1.67494, "y": 1.41543, "z": 4.59972, "text": "Thanks, Cal! It's great to see my hard work paying off. Opening this shop was my dream, and I'm really happy to see it getting started. It was a lot of hard work, but it was worth it.", "type": "memory"}, {"id": "876571e1-2392-4185-b149-fb7713b97911", "cluster": 3, "x": -2.1965, "y": 6.383, "z": 0.10282, "text": "Woo, Dave! Congrats on achieving your dream - you've got guts and ambition - that's awesome! Keep it up!", "type": "memory"}, {"id": "7723e36e-21c9-41e4-9dca-7260fa210ebf", "cluster": 1, "x": 3.13448, "y": -2.96624, "z": 4.19167, "text": "Thanks! Appreciate the support. My dream was to open a shop and it's a step towards my other dream of working on classic cars. I love their design and engineering.", "type": "memory"}, {"id": "893e1405-1257-4a3b-a337-059d306e1a05", "cluster": 1, "x": 2.18552, "y": -1.26295, "z": 4.38202, "text": "Wow, Dave! Going for it with classic cars is cool! Fulfilling your dreams is so important.", "type": "memory"}, {"id": "65485ff7-a80b-44cf-b7be-7301ae0a0b76", "cluster": 0, "x": 8.0258, "y": -9.74483, "z": 4.64658, "text": "I'm obsessed with classic cars. They have a unique charm. I was so thrilled to restore one last year\u2014nothing like bringing it back to life! Take a look at the engine of the restored car.", "type": "memory"}, {"id": "673eddbc-ca30-4d66-962a-6954d283047d", "cluster": 1, "x": 1.52959, "y": 1.84301, "z": 4.2909, "text": "Wow, Dave! That looks awesome!", "type": "memory"}, {"id": "21087892-ae9c-4787-99ea-644caff0403d", "cluster": 3, "x": -1.86467, "y": 6.27961, "z": 0.25257, "text": "Thanks, Calvin! It was a labor of love. Challenging, but so worth it.", "type": "memory"}, {"id": "95cc9868-404c-404b-bca7-a99222c695f8", "cluster": 3, "x": -1.71395, "y": 6.12686, "z": 0.27615, "text": "Yeah, it's awesome when you see something you worked on come to life.", "type": "memory"}, {"id": "e6568cfd-4675-43b5-99cb-afe3dacb43b7", "cluster": 3, "x": -1.49388, "y": 5.48369, "z": 0.3971, "text": "Yeah! It feels great to see the hard work pay off, it's like bringing something back to life.", "type": "memory"}, {"id": "4322e4aa-95fb-43c7-bc74-488d10b82703", "cluster": 3, "x": -2.04109, "y": 6.41307, "z": 0.07513, "text": "Yeah, it's an amazing feeling when you create something and it resonates with people. It's so satisfying when you finish something you made from scratch!", "type": "memory"}, {"id": "54154f3d-ce5d-4e94-910b-25c2f89da5a8", "cluster": 3, "x": -2.31165, "y": 6.50134, "z": 0.20785, "text": "Yeah, Calvin! It's such an amazing feeling to see something you create become a reality. Knowing that your skills and hard work made it happen is incredible.", "type": "memory"}, {"id": "ebf887e3-afca-43ad-988e-cabcaf51d550", "cluster": 3, "x": -1.03706, "y": 4.9723, "z": 1.05528, "text": "Yeah, Dave! Feels good when our hard work pays off. It's the perfect blend of dedication and passion!", "type": "memory"}, {"id": "1e748820-7fa7-40fb-b77a-6c3dc026c93b", "cluster": 3, "x": -0.83382, "y": 4.80263, "z": 1.26102, "text": "Yeah, that mix really keeps me motivated and makes it all worthwhile.", "type": "memory"}, {"id": "16bb19ba-2d53-494b-92af-e0e7941add22", "cluster": 3, "x": -2.09229, "y": 6.46359, "z": 0.03484, "text": "Keep going for it!", "type": "memory"}, {"id": "f6a2a621-8267-49fd-b07b-19c5e819177a", "cluster": 1, "x": 1.57465, "y": 1.82937, "z": 4.53022, "text": "I will! By the way, This is a photo of my shop. Come by sometime, if you can!", "type": "memory"}, {"id": "90df5195-cdb1-439b-879c-642bc6001e24", "cluster": 0, "x": 8.22635, "y": -9.90637, "z": 4.88105, "text": "Wow, your shop looks great! I'd love to check it out sometime. What sort of cars do you work on at your shop?", "type": "memory"}, {"id": "3c0cdd22-ee53-4065-8c48-48f906110845", "cluster": 1, "x": 2.44018, "y": -1.84261, "z": 4.20458, "text": "Thanks, Calvin! I work on all kinds of cars at the shop - from regular maintenance to full restorations of classic cars. It keeps me busy and happy!", "type": "memory"}, {"id": "34f2c225-4146-4636-ade0-d220bb79f686", "cluster": 1, "x": 1.45349, "y": 2.10214, "z": 4.1416, "text": "Wow Dave, working on cars must be really rewarding.", "type": "memory"}, {"id": "ced12d93-7d4c-4143-af1e-1354eaf079d6", "cluster": 3, "x": -0.69596, "y": 4.59754, "z": 1.37359, "text": "Definitely, working on cars is what I'm passionate about. Doing it every day is so rewarding! Seeing the transformation is awesome and knowing I'm helping people keep their cars in good condition is r", "type": "memory"}, {"id": "d1533029-e388-4e84-92bd-6113522176ed", "cluster": 2, "x": 0.13993, "y": 3.45694, "z": 2.54124, "text": "Wow Dave, that's awesome! Doing something you love and helping others is so rewarding. Keep up the great work!", "type": "memory"}, {"id": "e4f5bbf9-20bc-42a8-a7de-ae30bc1d079d", "cluster": 2, "x": -0.04392, "y": 3.78283, "z": 2.00984, "text": "Thanks, Cal! I really appreciate the boost. It means a lot that my work is valued and that it brings joy to others.", "type": "memory"}, {"id": "bc032298-6670-4095-b36b-11b06e8261d6", "cluster": 1, "x": 1.8996, "y": -0.12935, "z": 4.59641, "text": "Glad to help, Dave! So awesome to see you doing your thing and making a difference. Your hard work and talent totally deserve all the recognition. Keep on keepin' on, bud! Take a look at this beautifu", "type": "memory"}, {"id": "10225009-56d7-4608-a040-b4b4f49cfb86", "cluster": 1, "x": 2.94217, "y": -2.67983, "z": 4.12321, "text": "Wow, that's a great necklace! Where did you get it?", "type": "memory"}, {"id": "e98c5b5e-7cce-4b2f-8706-009b64c46426", "cluster": 2, "x": 0.21487, "y": 3.46502, "z": 2.34925, "text": "Thanks, Dave! I got it from another artist as a gift - it's a great reminder of why I keep hustling as a musician!", "type": "memory"}, {"id": "a30f430b-827b-4d74-85ad-146c5e6ffa65", "cluster": 3, "x": -0.6383, "y": 4.52934, "z": 1.4868, "text": "Awesome, Calvin! Keep pushing and making music, it'll remind us why we keep hustling.", "type": "memory"}, {"id": "d5b645eb-17c5-4e42-be59-bf6b086c0eac", "cluster": 2, "x": 0.49738, "y": 3.33749, "z": 2.51353, "text": "Yeah, Dave! The road can be hard, but when we remember why we're doing it, it keeps us going. Let's keep each other motivated!", "type": "memory"}, {"id": "c43c1d31-2b27-4c7f-8d29-d1b1ec575949", "cluster": 0, "x": 5.47091, "y": -6.21747, "z": 4.46058, "text": "Hey Calvin! Long time no talk. How's it going? Crazy news - I'm teaming up with a local garage. Take a look at what we working on together!", "type": "memory"}, {"id": "aa93969d-ba85-4b2d-a655-4a86a8f29ab7", "cluster": 0, "x": 6.52874, "y": -7.18114, "z": 4.39478, "text": "Hey Dave, great to hear from you! That's awesome news about teaming up with a local garage. Super inspiring seeing you follow your passion. Congratulations on this new venture. It's impressive how far", "type": "memory"}, {"id": "13f0aaff-2345-4c1e-bf85-1efbb549077a", "cluster": 1, "x": 2.69202, "y": -2.44864, "z": 4.12559, "text": "Thanks, Calvin! I'm loving this job. I get to work with awesome mechanics and share my knowledge about cars. Here's what I'm currently working on! It's a cool project, even if it's a bit challenging. ", "type": "memory"}, {"id": "4c3ebbcb-1c49-48f0-8b32-49f5586bfdd7", "cluster": 3, "x": -1.49905, "y": 5.71945, "z": 0.60002, "text": "That car looks awesome! You're putting in a lot of effort and it's great to see the end result. Keep up the good work. Got any plans for what's next?", "type": "memory"}, {"id": "5e068ee7-c80b-40f3-85e0-c5a1e3cc788b", "cluster": 3, "x": -1.24093, "y": 5.30343, "z": 0.67649, "text": "Thanks Calvin! Appreciate the support. I'm gonna keep learning more about auto engineering, maybe even build a custom car from scratch someday - that's the dream! For now, just gonna keep working on t", "type": "memory"}, {"id": "fe806c6b-a876-4435-893d-d7b85c106e0e", "cluster": 3, "x": -1.00758, "y": 5.03976, "z": 0.93551, "text": "Wow, Dave! You're so inspiring - good for you for pushing yourself to achieve your dream. Making a custom car sounds awesome. Don't forget to relax and enjoy the process too!", "type": "memory"}, {"id": "6ad98e46-077e-42d8-af78-b8012deac09e", "cluster": 2, "x": 0.61267, "y": 3.27146, "z": 2.63611, "text": "Thanks, Calvin! Gotta take time to chill. Do you have any hobbies that help you relax?", "type": "memory"}, {"id": "98ae597a-6f19-438e-9dd4-299726ec55f9", "cluster": 0, "x": 8.28457, "y": -10.32349, "z": 4.67925, "text": "Hey Dave, long drives in [this car] really help me relax. The feeling of the wind and the open road is so freeing. It helps me clear my head. What do you like to do to chill out? ", "type": "memory"}, {"id": "731dcc62-2333-4d91-b2b9-c41eef10b03f", "cluster": 1, "x": 1.70426, "y": 0.15643, "z": 4.50797, "text": "Yeah, I hear you! Driving with the wind in your hair is so calming. Taking a walk around is a great way to destress, too. Exploring, taking in the sights and sounds - it's such a peaceful experience.", "type": "memory"}, {"id": "4764b6c8-db9d-43c4-af2e-27c46092e866", "cluster": 2, "x": 0.05642, "y": 3.44917, "z": 2.45274, "text": "Yea, I totally hear ya. Embracing nature has been really calming for me too. I've been loving getting to know Japanese culture. On the other hand, I'm stuck with my music at the moment, like my creati", "type": "memory"}, {"id": "b4b0936d-e187-4cff-a599-50aa32bf2c3d", "cluster": 1, "x": 1.51082, "y": 2.06441, "z": 4.23925, "text": "If I'm having trouble coming up with ideas, I usually immerse myself in something I love, like concerts or my favorite albums. Doing that usually helps to jumpstart my inspiration. Maybe try taking a ", "type": "memory"}, {"id": "02b761a8-1145-45bf-9667-c435cc4b8f82", "cluster": 0, "x": 5.57103, "y": -6.36713, "z": 4.28155, "text": "Thanks, Dave! Taking a break is great for getting my mojo back. I'll definitely take your advice and explore. Appreciate the help! You're awesome!", "type": "memory"}, {"id": "f905abb2-7cf6-4250-943f-d4c03994d625", "cluster": 2, "x": 0.49206, "y": 3.10021, "z": 2.85106, "text": "No worries, Calvin! Glad I could help. Keep pursuing your music and never give up. You're awesome! \ud83e\udd18", "type": "memory"}, {"id": "ca808f05-c034-4d49-89a8-cba22399ff74", "cluster": 3, "x": -1.89868, "y": 6.20335, "z": -0.05772, "text": "Thanks, appreciate it. Won't give up. Let's stay in touch! Bye!", "type": "memory"}, {"id": "56af0d06-c2b3-49de-84c6-f5f2471a463c", "cluster": 0, "x": 5.28397, "y": -5.89879, "z": 4.27928, "text": "Sure, Calvin! Keep in touch. If you ever need help, just let me know. Bye!", "type": "memory"}, {"id": "9190690f-07a9-41b8-a009-894de08ebefc", "cluster": 0, "x": 6.986, "y": -7.71964, "z": 4.22363, "text": "Hey Dave! Long time no chat! Lots has gone down since we last caught up.", "type": "memory"}, {"id": "55b16f43-c2a7-41d6-b781-2a575f4f993b", "cluster": 0, "x": 5.40997, "y": -6.04652, "z": 4.37945, "text": "Hey Calvin! Long time no chat! How's everything been going since we last caught up?", "type": "memory"}, {"id": "7c33602c-5277-4256-8ddc-dd6cc2bb25aa", "cluster": 0, "x": 5.73541, "y": -6.39631, "z": 4.32917, "text": "Hey Dave, not everything has been going smoothly. I had an incident last week where my place got flooded, but thankfully, I managed to save my music gear and favorite microphone. It's been tough, but ", "type": "memory"}, {"id": "54cff75d-2d16-47b4-b6ab-fa4f806f3505", "cluster": 0, "x": 5.62461, "y": -6.21688, "z": 4.15697, "text": "Man, that's rough, Calvin. Sorry to hear about that. But I'm glad you could save your music gear and mic - those are the important things. Stay positive, pal. Anything I can do to help?", "type": "memory"}, {"id": "336637fa-773d-437d-a077-99cdce470a01", "cluster": 0, "x": 6.55739, "y": -7.42789, "z": 4.39229, "text": "Thanks, Dave. Appreciate the support. Waiting on insurance to kick in so I can start repairs - fingers crossed it won't take too long. Take a look at my creative haven, where I pour my heart into the ", "type": "memory"}, {"id": "3f9087d7-fccc-46cc-9f56-db3814ddbd67", "cluster": 1, "x": 1.79711, "y": -0.34803, "z": 4.42671, "text": "That studio looks awesome, Cal! I hope you get it fixed soon so you can continue creating music. Hang in there!", "type": "memory"}, {"id": "67d74418-6415-4da7-b6e5-aa91a495aa60", "cluster": 0, "x": 5.67744, "y": -6.47895, "z": 4.45661, "text": "Thanks, Dave! Can't wait to get back to making music. Anything exciting you're working on these days?", "type": "memory"}, {"id": "6b206f2c-71c8-46bb-b0b9-517731a22995", "cluster": 1, "x": 2.60161, "y": -2.23446, "z": 4.22372, "text": "I'm so excited, I opened my car shop last week! Invited some friends over to celebrate and it's been amazing. Super stoked to share my passion and help out with folks' rides. It's been incredible so f", "type": "memory"}, {"id": "bd608df2-a52d-4ae3-96e7-402c36104ee2", "cluster": 1, "x": 1.68453, "y": 1.63797, "z": 4.55856, "text": "Way to go, Dave! Congrats on opening your own car shop! Your excitement is contagious. Keep up the great work!", "type": "memory"}, {"id": "b0ab7792-43eb-4df9-85d1-6451f9029d2d", "cluster": 2, "x": 0.72876, "y": 2.93898, "z": 3.06929, "text": "Thanks, Calvin! Your support is greatly appreciated. It's been quite a journey so far, and I'm excited to see what the future holds. How about you? Anything exciting happening in the world of music fo", "type": "memory"}, {"id": "2220f79f-df71-4215-bea4-00ef466b1968", "cluster": 1, "x": 2.32493, "y": -1.71359, "z": 4.32077, "text": "Thanks Dave! Super excited for my upcoming performance in Tokyo this month. It's gonna be great to show my music to a whole new crowd and hopefully expand my following!", "type": "memory"}, {"id": "df49e866-c25d-4eba-80d0-fd1716469f76", "cluster": 1, "x": 2.93241, "y": -2.4467, "z": 4.37541, "text": "Cool, Cal! Doing a show in Tokyo, wow! I'm sure the audience is gonna love it. Wishing you all the luck! Let me know how it goes.", "type": "memory"}, {"id": "68f425b1-3e89-4086-a6c5-0a7005a3cfa1", "cluster": 1, "x": 2.77079, "y": -2.50337, "z": 4.23036, "text": "Sure thing, Dave! I'll keep you posted on how it goes. Thanks for the good luck! Look what a wonderful night! \n", "type": "memory"}, {"id": "54a9444d-33ab-472b-bad5-7bd5f3651af0", "cluster": 3, "x": -0.78495, "y": 4.72207, "z": 1.19225, "text": "That looks great! Where did you snap that pic?", "type": "memory"}, {"id": "f602be48-955b-4348-9145-182acd67fc82", "cluster": 1, "x": 1.73257, "y": 0.83225, "z": 4.59678, "text": "I took that pic in Tokyo last night. The skyline was stunning!", "type": "memory"}, {"id": "96d25cd3-2c83-4798-99e9-275514be4216", "cluster": 0, "x": 7.79204, "y": -9.19194, "z": 4.68031, "text": "Wow, great shot! The night skyline really pops with those city lights. I gotta take a trip there soon!", "type": "memory"}, {"id": "93ea3949-7d8b-4c3e-96f1-452d76012d5d", "cluster": 0, "x": 8.48453, "y": -9.94102, "z": 4.80523, "text": "Thanks Dave! The city lights there are amazing. You should visit, it's awesome!", "type": "memory"}, {"id": "3a3eeac4-f578-452e-b30d-933f6d157767", "cluster": 3, "x": -1.96691, "y": 6.57222, "z": 0.20507, "text": "Definitely adding it to my list. Thanks!", "type": "memory"}, {"id": "e7da683a-3241-47b1-89ab-3fefb1250fe7", "cluster": 0, "x": 6.48097, "y": -7.35089, "z": 4.32448, "text": "Hey Dave! Been ages since we chatted. So much has gone down. Touring with Frank Ocean last week was wild. Tokyo was unreal -- the crowd was insane. I felt so alive when performing, can't find the word", "type": "memory"}, {"id": "7ae2dbb3-5084-40b1-9aa9-7101a8301828", "cluster": 2, "x": 0.91946, "y": 2.6859, "z": 3.36581, "text": "Wow, that's awesome, Cal! I bet it was an incredible experience. Congrats! Look what I've been up to recently, that's my neighbor's car. He's been having some trouble with the engine, but now it's don", "type": "memory"}, {"id": "fde52726-176d-411c-a057-6f036dec4a2b", "cluster": 0, "x": 6.01258, "y": -6.69072, "z": 4.28016, "text": "Thanks, Dave! It was an amazing experience - the energy and love from the fans was crazy. The car in the pic? It's the one you were fixing up the engine for a friend? Working on cars helps me chill an", "type": "memory"}, {"id": "375c643f-eadc-4d12-9a02-458e1a1526db", "cluster": 1, "x": 2.21056, "y": -1.49097, "z": 4.25803, "text": "Yes, Cal! It's not difficult for me to help my neighbors with their cars. Working on cars is definitely therapeutic. Does it relax you as much as it does me?", "type": "memory"}, {"id": "1317b3e5-060f-4e5d-8091-0a8560af2de5", "cluster": 3, "x": -1.41312, "y": 5.47796, "z": 0.74757, "text": "Yeah, totally! Fixing cars really calms me down and gives me a real sense of achievement - like meditating. Do you have any hobbies that give you the same satisfaction?", "type": "memory"}, {"id": "203abe0f-1a5b-49bf-ace5-816b46081214", "cluster": 3, "x": -1.26491, "y": 5.45431, "z": 0.78404, "text": "I'm passionate about fixing up things. It's more than just a hobby - it gives me a sense of achievement and purpose. I get a real buzz transforming something that's not working into something that run", "type": "memory"}, {"id": "5fa6c209-fd57-4d61-90d3-a84b4e821ba4", "cluster": 3, "x": -1.93663, "y": 6.02417, "z": 0.00608, "text": "That's so inspiring, Dave. You find purpose in transforming things \u2013 like when you create something new or collaborate with others. We're both making something great out of nothing, it's amazing, righ", "type": "memory"}, {"id": "0f93a175-b85a-4ba0-b323-c27090c91718", "cluster": 3, "x": -1.53729, "y": 5.92629, "z": 0.54001, "text": "Yeah Cal, it's kinda cool how we can take something and make it look amazing. Giving it a new life makes me feel powerful and happy - like I really achieved something.", "type": "memory"}, {"id": "06c62d9b-f966-4428-81f0-8d950397d331", "cluster": 3, "x": -0.95255, "y": 4.94618, "z": 1.19105, "text": "Yeah, Dave! That feeling of power and happiness is amazing! It's great to see what we created with all our hard work and ideas.", "type": "memory"}, {"id": "8426fa61-b4f3-478c-90d9-5edcd16d46e1", "cluster": 3, "x": -2.06735, "y": 6.22286, "z": 0.01735, "text": "Yeah, Calvin! Accomplishment keeps me motivated. You mentioned Tokyo lit you up. Do you always enjoy performing live?", "type": "memory"}, {"id": "e1fb508d-e8aa-44a6-9357-062c6f36847e", "cluster": 3, "x": -1.7035, "y": 6.02386, "z": 0.08381, "text": "Performing live always fuels my soul! I love the rush and connection with the crowd, the feeling's indescribable\u2014it's an absolute high!", "type": "memory"}, {"id": "dd6d834c-2033-4a6b-942f-cc8bb6ad4e1f", "cluster": 3, "x": -1.1655, "y": 5.25677, "z": 0.84378, "text": "Wow, I bet it feels awesome. The connection between artist and audience must be so powerful. Look at the atmosphere in this photo, it's just off the charts!", "type": "memory"}, {"id": "a4d80f45-31d1-4e33-963b-b31e9c1c335e", "cluster": 2, "x": 0.67006, "y": 2.89941, "z": 3.00908, "text": "Yeah, Dave! That feeling is amazing. Everyone is part of it, it's like one big harmony.", "type": "memory"}, {"id": "8361f253-7a36-45c6-8452-386b82bf006f", "cluster": 1, "x": 1.44024, "y": 2.17961, "z": 4.09124, "text": "That's awesome! Music really brings people together and creates a great atmosphere. It's like therapy for us all. So, what's next for your music?", "type": "memory"}, {"id": "004aa001-2aad-478c-991b-c2425cb918f4", "cluster": 0, "x": 8.28201, "y": -9.94143, "z": 4.66737, "text": "Cool, can't wait for the tour with Frank! I'm buzzing to perform in Boston and see what it's like. Gonna be great playing for folks from home. What do you think of the music scene there?", "type": "memory"}, {"id": "437f5009-7035-4c9c-8ae8-514ab706113c", "cluster": 0, "x": 7.33514, "y": -8.50692, "z": 4.50003, "text": "Hey, Boston's music scene is awesome! Tons of talented musicians and cool places to play. It'll be a blast performing there - I'll be there to cheer you on!", "type": "memory"}, {"id": "032937cd-aaf5-4e8b-bf8e-30b553f7838a", "cluster": 1, "x": 1.66253, "y": 1.36611, "z": 4.57361, "text": "Thanks, Dave! Your support means a lot to me. Can't wait to experience the music scene there.", "type": "memory"}, {"id": "13cfc01a-181d-43a4-bc7f-f42df2b22f6f", "cluster": 1, "x": 2.0779, "y": -1.08281, "z": 4.36087, "text": "Great, Calvin! Have a great time in Boston. Can't wait to hear all about it when you get back!", "type": "memory"}, {"id": "64237c43-2925-47cc-88de-c7c253bfd2ec", "cluster": 1, "x": 3.25161, "y": -3.14893, "z": 4.20788, "text": "Thanks! I'll fill you in on all the details when I get back. See you soon!", "type": "memory"}, {"id": "de7eb1bf-4de5-4cbb-b01a-9113d727934d", "cluster": 1, "x": 1.50546, "y": 1.11873, "z": 4.54567, "text": "Hey Dave! Met with the creative team for my album yesterday. It was a long session, but awesome to see everything coming together. ", "type": "memory"}, {"id": "a03ee30a-1734-4d84-9fb6-d85bb421c0e8", "cluster": 1, "x": 1.58819, "y": 1.5924, "z": 4.20152, "text": "Hey Cal! Sounds great that your album's coming along. Are you feeling good about it? Here's a pic I just took.", "type": "memory"}, {"id": "41e9942a-08fb-4e8a-9492-a5f0b1f7aca9", "cluster": 0, "x": 7.86392, "y": -9.50389, "z": 4.78123, "text": "Dave, thanks for checking in. I'm feeling stoked about this album! We've been making some magic with a team in the studio, working on the music and everything. Look at what a wonderful studio we have!", "type": "memory"}, {"id": "01d13d36-6c17-4b03-9f4a-4f756647871e", "cluster": 0, "x": 8.12655, "y": -9.56742, "z": 4.77884, "text": "Hey, nice photo of the studio! Working in a team yields incredible results, well done! Keep pushing it! I've been doing good - thanks for asking. I've been exploring some parks on the weekends to rela", "type": "memory"}, {"id": "191eb068-5b14-4be8-bcd6-fa8447065a7a", "cluster": 0, "x": 8.37479, "y": -10.27298, "z": 4.75044, "text": "Thanks! That studio is great for creativity. I've never been to Boston before, but I hear the parks are amazing. Can't wait to visit next month. Anything cool you remember about Boston parks?", "type": "memory"}, {"id": "3df3df84-72ed-4cae-9255-ad0e862f2a17", "cluster": 0, "x": 8.2635, "y": -10.17896, "z": 4.86352, "text": "That sounds great! The Boston parks are awesome, especially in spring. It's so serene when you're walking around. I went for a stroll last Friday and it was amazing. It's so magical - I bet you'll lov", "type": "memory"}, {"id": "c00b0120-e5c5-4755-8e34-eea169825b87", "cluster": 1, "x": 2.50044, "y": -1.94792, "z": 4.16338, "text": "I'm excited to experience that serenity. I can't wait to take a walk in the parks and recharge. Hey, have you been on any hikes lately?", "type": "memory"}, {"id": "4a163c40-f39e-4d82-8f41-aa7723752c88", "cluster": 1, "x": 2.82529, "y": -2.34133, "z": 4.00787, "text": "Nah, haven't gone hiking recently, but it's awesome - being in nature and pushing yourself to new heights. Clears your mind and brings a sense of calm. Have you been to the mountains before? Heard the", "type": "memory"}, {"id": "5fe20e66-ee64-4ace-92c9-9c7763fb62e1", "cluster": 0, "x": 8.09977, "y": -10.22543, "z": 4.88299, "text": "Nah, haven't been to the mountains but I'm keen to go. Looking for a way to escape it all and de-stress. I want to go on a hike to a place similar to this. What's new and exciting happening for you, D", "type": "memory"}, {"id": "216f31a1-3788-488b-acb9-ffb8ff0ecb30", "cluster": 2, "x": 0.98368, "y": 2.62712, "z": 3.43373, "text": "I booked a trip to a mountainous region for next month! Finally gonna be able to see those majestic peaks! Gonna be an amazing experience!", "type": "memory"}, {"id": "a3fb0968-c9fb-41e9-9f5f-19edf474876a", "cluster": 0, "x": 5.73225, "y": -6.29654, "z": 4.48335, "text": "Cool, Dave! Have a great time. I'm sure it's going to be an amazing experience. Take lots of pics and show me when you get back.", "type": "memory"}, {"id": "1c9a8aab-84ac-4201-aa36-472642ae5edf", "cluster": 1, "x": 2.93913, "y": -2.66081, "z": 4.24461, "text": "Yep, Calvin! Gonna take lots of pics. Can't wait to show you when I get back!", "type": "memory"}, {"id": "d9441744-f8d1-4792-8257-d1539c4cb22d", "cluster": 0, "x": 5.92183, "y": -6.60605, "z": 4.41223, "text": "Have fun exploring the mountains, Dave! Safe travels and see you soon. Take care!", "type": "memory"}, {"id": "67c0b17a-d0fc-428f-ae1b-eaf4328f52d6", "cluster": 3, "x": -0.73587, "y": 4.60726, "z": 1.43965, "text": "Thanks, Calvin! Take care, see you soon!", "type": "memory"}, {"id": "082c751b-6342-44fe-beb4-809cb706ff46", "cluster": 0, "x": 7.65063, "y": -8.90484, "z": 4.68427, "text": "Hi Dave! Nice to hear from you. Since last chat, some things have happened. I had a lil car accident last Friday, kinda upsetting but no one was hurt. I've been dealing with insurance and repairs - ta", "type": "memory"}, {"id": "e9e07c16-77fd-444e-af5b-6d76f22e4baf", "cluster": 0, "x": 6.57115, "y": -7.26252, "z": 4.23589, "text": "Sorry to hear about the car accident, Calvin. I'm glad to hear that nobody was hurt. Dealing with insurance and repairs can definitely be time-consuming and draining. Have you encountered any issues i", "type": "memory"}, {"id": "970fcf1e-4c03-42b6-be43-4bc8ad9d2096", "cluster": 0, "x": 6.76289, "y": -7.3487, "z": 4.13101, "text": "Hey Dave, thanks for checking in! The insurance process was a hassle - it took forever and there was a ton of paperwork. But it's all sorted now, and I'm getting it fixed up. Can't wait to drive it ag", "type": "memory"}, {"id": "a0b5c62b-19b6-4993-beac-ec238113caf0", "cluster": 1, "x": 1.86585, "y": 0.74912, "z": 4.66275, "text": "How long did it take to get everything sorted out? I'm glad it's all taken care of now!", "type": "memory"}, {"id": "8ce70d79-30ee-4ef4-8372-c3121b90ebbd", "cluster": 0, "x": 7.19184, "y": -7.98077, "z": 4.37552, "text": "It only took a week to sort everything out. I was worried about the cost, but it wasn't too bad. Look at this photo from the auto repair shop. ", "type": "memory"}, {"id": "39fd645d-6eb5-43cb-b67c-fd5b5d52df0c", "cluster": 0, "x": 7.17943, "y": -8.23485, "z": 4.33519, "text": "Cool! Glad it wasn't too expensive. Who are him?", "type": "memory"}, {"id": "91dbf62e-eb70-4e85-ad04-ff4e10bd1bc4", "cluster": 1, "x": 1.79558, "y": 0.81503, "z": 4.54805, "text": "That's the mechanic. He knows the stuff and is doing his best to get my car running again.", "type": "memory"}, {"id": "a005145d-6ace-4d11-9491-ec2644aee41b", "cluster": 3, "x": -1.12878, "y": 5.16821, "z": 0.89339, "text": "That's great to hear! Skilled and knowledgeable people working on your car - are you feeling confident?", "type": "memory"}, {"id": "93b01864-d568-4f1d-88a9-f77f9edf402c", "cluster": 3, "x": -2.21797, "y": 6.34678, "z": 0.03195, "text": "Feeling way more confident and excited to show off my car! Trusting their expertise.", "type": "memory"}, {"id": "7d2eab10-f85e-4eb6-a204-7d0aff1d655f", "cluster": 1, "x": 2.88697, "y": -2.79184, "z": 4.15695, "text": "Great, Cal! It's awesome when you trust the people fixing it. Sounds like they're doing a great job. It'll be back to normal soon!", "type": "memory"}, {"id": "034f5074-8e92-4f53-977c-649fd60220d7", "cluster": 0, "x": 6.79989, "y": -7.4701, "z": 4.28353, "text": "Thanks, Dave! Excited to drive again. Appreciate your help! Look what a wonderful view from living room!", "type": "memory"}, {"id": "451ed8c4-3ba7-4e4b-84c4-e3261c1de270", "cluster": 0, "x": 7.65169, "y": -9.0452, "z": 4.66431, "text": "Wow, what an amazing view! Where is it? I haven't seen anything like that before!", "type": "memory"}, {"id": "c798f789-e482-49f3-8610-70e77d912e21", "cluster": 0, "x": 6.99843, "y": -7.51839, "z": 4.58215, "text": "Thanks, Dave! It's from a small town in Japan. The view of the mountains is unbelievably stunning!", "type": "memory"}, {"id": "460e9c62-d655-4bc1-9bbc-fbf4f3653640", "cluster": 1, "x": 1.82928, "y": 0.95902, "z": 4.51907, "text": "Wow! Did you get to that place yet?", "type": "memory"}, {"id": "7cfee3e4-4bb1-4e69-99f9-f7af63507a24", "cluster": 0, "x": 7.57498, "y": -8.4729, "z": 4.53492, "text": "Nope, not yet! I haven't been there before, but it's on my to-do list for after my tour with Frank Ocean ends. Can't wait to see them in person! Look at that snowy peak.", "type": "memory"}, {"id": "47f8903f-e652-4a7c-be62-ace10f34d3bc", "cluster": 1, "x": 2.88825, "y": -2.36831, "z": 3.99901, "text": "Looks awesome! Have you ever tried skiing before? It looks like loads of fun!", "type": "memory"}, {"id": "a1581f9d-2a3f-4557-80d6-494661568255", "cluster": 1, "x": 1.43231, "y": 1.68515, "z": 4.49593, "text": "Haven't tried it before, but it does look like a lot of fun! I might give it a try once. So what's up with you, is anything new in your daily routine?", "type": "memory"}, {"id": "cadc97f2-7097-402e-92c5-9b09b3f0a129", "cluster": 2, "x": 0.3404, "y": 3.19387, "z": 2.70854, "text": "Yes, Cal! I recently joined a rock band and have been practicing guitar. Look at this photo \u2013 it's us, the guys! ", "type": "memory"}, {"id": "88c76018-869a-4259-b4d7-ee402a64af53", "cluster": 1, "x": 1.95046, "y": -0.50342, "z": 4.49668, "text": "Playing guitar in a rock band is awesome, Dave! It will bring you a lot of emotions.", "type": "memory"}, {"id": "32129c68-ed95-4d89-a350-792cdfe90780", "cluster": 1, "x": 2.94165, "y": -2.3207, "z": 4.42237, "text": "Sounds good, Calvin! Good company and great music, lift the mood and bring a lot of positive emotions! I have to go now. I'll see you soon!", "type": "memory"}, {"id": "21242e1e-4e22-4f33-892d-2298328a5816", "cluster": 1, "x": 1.91766, "y": -0.48748, "z": 4.5248, "text": "Thanks, Dave! let's keep in touch, take care!", "type": "memory"}, {"id": "226928ac-481d-4d20-bf8e-bf22d7ca9d39", "cluster": 0, "x": 7.2052, "y": -7.91605, "z": 4.4625, "text": "Hey Calvin, how's the car doing after the crash? You were stoked to get back on the road, right?", "type": "memory"}, {"id": "ce5a3f4f-e192-4da4-9cb8-ab73c4e5b7bf", "cluster": 0, "x": 7.49951, "y": -8.68945, "z": 4.69312, "text": "Hey Dave! Thanks for checking in. It's all good now, the car's fixed and going strong. Nothing better than cruising around - it's the best! Look at how my car looks right now. How've you been? Anythin", "type": "memory"}, {"id": "c602cd4c-beba-4536-8208-f0c4d925ce4e", "cluster": 1, "x": 3.09455, "y": -2.78063, "z": 4.26214, "text": "Glad to hear your car's fixed and going strong! I've been good too. Just been hanging out with friends at parks lately. I arranged with friends for regular walks together in the park.", "type": "memory"}, {"id": "b49a625b-4c37-4eaf-bc3f-c3eb74b6eece", "cluster": 0, "x": 7.67749, "y": -8.76404, "z": 4.5454, "text": "\nThat sounds like a great plan! Regular walks with friends can be a wonderful way to spend time together and stay active. Fresh air and buddies can do wonders. Do you have a favorite spot for hanging ", "type": "memory"}, {"id": "76d28e93-d0e5-4cd6-bc24-e71830e11503", "cluster": 1, "x": 1.9018, "y": -0.69556, "z": 4.43808, "text": "Yeah, today we are going to that spot. Look at that lovely photo.", "type": "memory"}, {"id": "aaa54c70-13e6-4776-b050-f186524f55de", "cluster": 0, "x": 7.84872, "y": -9.27702, "z": 4.74881, "text": "Wow, what a view! That sunset over the river is gorgeous. It must be so tranquil there. Reminds me of living in my Japanese mansion with the epic cityscape. It's like a dream come true! Look at this p", "type": "memory"}, {"id": "44761566-4680-4be8-8f6f-0064450b44c8", "cluster": 0, "x": 7.73464, "y": -8.99036, "z": 4.58429, "text": "Yeah, the peace by the river is really nice. But living in a Japanese mansion surrounded by that city skyline must be stunning. The views must be amazing!", "type": "memory"}, {"id": "a0bbe252-ae6e-4c85-b747-475ac309f50b", "cluster": 0, "x": 7.81664, "y": -9.12662, "z": 4.81024, "text": "Ah, it really is beautiful. Whenever I look out the windows and see the city lights, it's so awe-inspiring. Luxury and beauty on a whole new level. Look at the front part of the mansion.", "type": "memory"}, {"id": "e8a2fb03-e541-4423-b9de-5e4fb45610e6", "cluster": 0, "x": 8.04497, "y": -9.96951, "z": 5.01821, "text": "That mansion looks great! I bet the view from inside is stunning. Must be amazing living there. Anything else you're looking forward to doing in Japan?", "type": "memory"}, {"id": "901efd99-cf71-4853-976f-85ec76a06f9a", "cluster": 0, "x": 6.18779, "y": -6.89646, "z": 4.409, "text": "Thanks Dave! Japan is indeed amazing. Can't wait to try the food and check out the culture. Have you ever been there?", "type": "memory"}, {"id": "0f3a6799-dea0-4fc9-ade3-ba4617eb48ae", "cluster": 0, "x": 8.41397, "y": -10.21865, "z": 4.83281, "text": "Nope, never been to Japan but I'm so keen to go one day. I've heard it's full of vibes, good eats and awesome tech. Plus, being able to experience the culture would be amazing - I'm hooked on their mu", "type": "memory"}, {"id": "59e35a12-ba2e-4c6e-b409-da841c76bb20", "cluster": 1, "x": 1.4613, "y": 2.18107, "z": 4.05166, "text": "Japan definitely has it all - vibes, food, tech, and an amazing culture. It's like stepping into another world. I've been working on some cool music collaborations with Japanese artists, and I'm reall", "type": "memory"}, {"id": "47eb32ea-8f7b-40fb-90c7-323dbd757a33", "cluster": 1, "x": 1.70473, "y": 0.31447, "z": 4.54837, "text": "Cool, Cal! Working with them is a great chance - can't wait for the tunes!", "type": "memory"}, {"id": "48c2bac0-6927-447e-9b65-8ba6dd7639d8", "cluster": 3, "x": -0.97019, "y": 5.1133, "z": 0.72858, "text": "Thanks! I'll share some clips when everything's ready. Collaborating with various artists is always exciting, it's a chance to create something unique.", "type": "memory"}, {"id": "a8769ea9-3be9-4121-8649-8fb802ed2d4b", "cluster": 3, "x": -0.85875, "y": 5.04108, "z": 1.0958, "text": "Way to go, Cal! Collaborating with different artists to create something special sounds amazing. Can't wait to see/hear the end product!", "type": "memory"}, {"id": "a0e299a7-339e-49f6-86b2-fcae3d517464", "cluster": 1, "x": 2.63628, "y": -1.97259, "z": 3.98426, "text": "Thanks, Dave! Appreciate all the help. It's gonna be awesome - can't wait to show you. Great catching up, gotta get back to work now. Take care!", "type": "memory"}, {"id": "91e0d4f9-943a-46b8-9e0f-45bdee5dbaa6", "cluster": 1, "x": 1.81989, "y": -0.03354, "z": 4.65914, "text": "Hey Cal, take care and don't overwork yourself! Talk to you soon. Stay safe!", "type": "memory"}, {"id": "8c8906f6-bf77-4d06-bd02-cb6fa2421f89", "cluster": 0, "x": 8.15931, "y": -10.25882, "z": 4.55068, "text": "Hey Cal, been ages since we spoke! Guess what? I just got back from a road trip with my friends - we saw some stunning countryside. It was such a lovely break from the corporate mayhem. Driving on tho", "type": "memory"}, {"id": "d824981b-2667-43b5-b6fa-7c3a9e13ffcf", "cluster": 0, "x": 7.05806, "y": -8.11816, "z": 4.56597, "text": "Hey Dave! Great hearing from you! Wow, a road trip sounds awesome. I bet it felt great to get away from work and relax on those twisty roads. Recharging with your passion is awesome!", "type": "memory"}, {"id": "7e0ecd2f-a122-428c-aa4d-61aaf82d26ac", "cluster": 1, "x": 1.70272, "y": 1.09682, "z": 4.81698, "text": "It was great to get away and reconnect with my passion. Reminded me why I'm passionate about what I do. Makes the long hours worth it. Here's a pic what a wonderful place we found. Have you had any re", "type": "memory"}, {"id": "5f4cdbe1-8752-4b0b-8ec9-9c6a5afdc434", "cluster": 1, "x": 2.49112, "y": -2.14717, "z": 4.12046, "text": "I'm happy for you that you have found such an amazing place! Yeah, I'm working on this project to transform a Japanese mansion into a recording studio. It's been my dream to have a space for creating ", "type": "memory"}, {"id": "d3e08d47-1cc8-49d2-8c8b-9f810e435554", "cluster": 2, "x": 0.37981, "y": 3.30108, "z": 2.65198, "text": "Wow, Calvin, this looks amazing! You've made so much progress. Must be very fulfilling to have your own space. What kind of music have you been creating in there?", "type": "memory"}, {"id": "3066995a-8c38-4e34-b3c2-fdc112ae371a", "cluster": 3, "x": -0.98199, "y": 4.84603, "z": 1.41848, "text": "Thanks, Dave! It feels great having my own space to work in. I've been experimenting with different genres lately, pushing myself out of my comfort zone. Adding electronic elements to my songs gives t", "type": "memory"}, {"id": "1023f944-83f0-43a7-9a22-c4af4134c8b9", "cluster": 3, "x": -2.34152, "y": 6.59963, "z": 0.2976, "text": "Wow, Calvin, that's great! It must be an exciting process of self-discovery and growth to experiment with different genres. Does moving between styles present any challenges?", "type": "memory"}, {"id": "cab45d25-c78b-4d9e-b0d5-0efa47021ab2", "cluster": 1, "x": 1.61006, "y": 0.73114, "z": 4.78199, "text": "Yeah, switching it up can be tough, but I think it's a matter of finding the right balance between sticking to my sound and trying new stuff. It can be intimidating, but that's what makes it so exciti", "type": "memory"}, {"id": "b11bca1d-8baa-4a66-91cc-ba6d31d62068", "cluster": 1, "x": 1.99169, "y": -1.04952, "z": 4.43815, "text": "Yeah, I get it. Finding a balance is tricky but it's gotta keep things interesting. How are you dealing with the pressure and staying motivated?", "type": "memory"}, {"id": "3f354dec-b5ef-495e-a047-1b82ef54338c", "cluster": 3, "x": -1.62088, "y": 5.80973, "z": 0.23491, "text": "I started making music to follow my dreams, and I'm stoked about how far I've come. Collaborating with others and learning from them keeps me motivated. Surrounding myself with positive energy and pas", "type": "memory"}, {"id": "df4fe6d1-470d-42ac-81df-224d7ef1fa59", "cluster": 1, "x": 2.08837, "y": -0.36264, "z": 4.37234, "text": "Calvin's Japanese recording studio could host sessions themed around classic car culture, merging Dave's restoration artistry with musical creativity. | Confidence: 7 | Action: music, entrepreneurship, travel, passion, collaboration", "type": "insight"}, {"id": "bb175de3-089e-4039-b558-8ff0cc7a0ae1", "cluster": 0, "x": 7.12956, "y": -8.24572, "z": 4.50823, "text": "Calvin and Dave should co-create a car-meets-music experience, blending live performances with classic car showcases. | Confidence: 7 | Action: music, cars, travel, friendship, passion, lifestyle", "type": "insight"}, {"id": "1e99d754-95ec-40cc-9ecb-ff8a3fbb360a", "cluster": 2, "x": 0.38883, "y": 3.30322, "z": 2.61548, "text": "Calvin could unblock creativity by co-writing songs inspired by engine rhythms with Dave's mechanical expertise as muse. | Confidence: 7 | Action: music, creativity, travel, mechanics, friendship", "type": "insight"}, {"id": "c77c10a7-7ac1-4d82-983c-04d25259f7be", "cluster": 3, "x": -1.50302, "y": 5.63036, "z": 0.60287, "text": "Calvin and Dave should co-create a project: a custom car with a soundtrack engineered to match its unique identity. | Confidence: 7 | Action: creative transformation, cross-discipline collaboration, passion-driven craft", "type": "insight"}];
+const CONFIG = {"input_file": "/Users/jarnold/workspace/aiGames/memory-experiment-1/data/locomo/run_20260409_224300_pudgy-goober/conv-50_calvin_dave_200records.jsonl", "model": "claude-sonnet-4-6", "embedder": "nomic-ai/nomic-embed-text-v1.5", "clusterer": "umap_hdbscan", "steerer": "projection", "prompt": "idea_generating", "synthesizer": "Anthropic (claude-sonnet-4-6)", "steerer_params": {"steerer": "projection", "themes_file": null, "themes": ["self-actualization"], "steer_alpha": 200.0}};
+const PRESETS = {"pins": [{"pointId": "c77c10a7-7ac1-4d82-983c-04d25259f7be", "color": "rgb(255, 187, 51)", "offset": {"x": 0.0485, "y": 0.0067}}, {"pointId": "1e99d754-95ec-40cc-9ecb-ff8a3fbb360a", "color": "rgb(204, 119, 255)", "offset": {"x": -0.2367, "y": 0.1492}}, {"pointId": "bb175de3-089e-4039-b558-8ff0cc7a0ae1", "color": "rgb(255, 102, 170)", "offset": {"x": 0.0487, "y": -0.2495}}], "camera": {"position": {"x": 12.5913, "y": 9.4505, "z": 12.6099}, "target": {"x": 0, "y": 0, "z": 0}}, "clustering": true, "insights": true, "ui": {"config": false}};
+
+// Build config panel
+{
+  const panel = document.getElementById('config-panel');
+  const entries = Object.entries(CONFIG);
+  if (entries.length > 0) {
+    let html = '<h3>Configuration</h3><table>';
+    for (const [key, value] of entries) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        html += `<tr><td colspan="2" class="cfg-section">${key.replace(/_/g, ' ')}</td></tr>`;
+        for (const [sk, sv] of Object.entries(value)) {
+          const display = sv === null ? 'none' : Array.isArray(sv) ? sv.join(', ') : sv;
+          html += `<tr><td class="cfg-key">${sk.replace(/_/g, ' ')}</td><td class="cfg-val">${display}</td></tr>`;
+        }
+      } else {
+        const display = value === null ? 'none' : Array.isArray(value) ? value.join(', ') : value;
+        html += `<tr><td class="cfg-key">${key.replace(/_/g, ' ')}</td><td class="cfg-val">${display}</td></tr>`;
+      }
+    }
+    html += '</table>';
+    panel.innerHTML = html;
+  }
+}
+
+const hasInsights = DATA.some(p => p.type === 'insight');
+
+// Color — golden-angle HSL for unlimited distinct colors, noise is gray
+const NOISE_COLOR = '#555555';
+
+function clusterColor(clusterId) {
+  if (clusterId === -1) return NOISE_COLOR;
+  const hue = (clusterId * 137.508) % 360;
+  return `hsl(${hue}, 70%, 55%)`;
+}
+
+// Setup scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// Compute data bounds for camera positioning
+let minX = Infinity, maxX = -Infinity;
+let minY = Infinity, maxY = -Infinity;
+let minZ = Infinity, maxZ = -Infinity;
+for (const p of DATA) {
+  minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+  minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+}
+const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+const span = Math.max(maxX - minX, maxY - minY, maxZ - minZ) || 1;
+
+// Geometries
+const SPHERE_RADIUS = span * 0.018;
+const sphereGeo = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 12);
+const insightGeo = new THREE.OctahedronGeometry(SPHERE_RADIUS * 2.0);
+
+const memoryMeshes = [];
+const insightMeshes = [];
+
+for (const p of DATA) {
+  const color = clusterColor(p.cluster);
+  const isInsight = p.type === 'insight';
+
+  const material = new THREE.MeshStandardMaterial({
+    color: isInsight ? '#ffffff' : color,
+    roughness: isInsight ? 0.3 : 0.5,
+    metalness: isInsight ? 0.2 : 0.1,
+    emissive: color,
+    emissiveIntensity: isInsight ? 0.6 : 0.3,
+  });
+
+  const mesh = new THREE.Mesh(isInsight ? insightGeo : sphereGeo, material);
+  mesh.position.set(p.x - cx, p.y - cy, p.z - cz);
+  mesh.userData = p;
+  scene.add(mesh);
+
+  if (isInsight) {
+    insightMeshes.push(mesh);
+  } else {
+    memoryMeshes.push(mesh);
+  }
+}
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(span, span, span);
+scene.add(dirLight);
+
+// Camera
+camera.position.set(span * 0.8, span * 0.6, span * 0.8);
+controls.target.set(0, 0, 0);
+controls.update();
+
+// Legend
+const clusterIds = [...new Set(DATA.map(p => p.cluster))].sort((a, b) => a - b);
+const legendEl = document.getElementById('legend');
+let legendHTML = '<h3>Clusters</h3>';
+for (const cid of clusterIds) {
+  const label = cid === -1 ? 'Noise' : `Cluster ${cid}`;
+  const count = DATA.filter(p => p.cluster === cid && p.type !== 'insight').length;
+  legendHTML += `<div class="legend-item">
+    <div class="legend-swatch" style="background:${clusterColor(cid)}"></div>
+    ${label} (${count})
+  </div>`;
+}
+if (hasInsights) {
+  const insightCount = DATA.filter(p => p.type === 'insight').length;
+  legendHTML += `<div class="legend-item" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+    <div class="legend-swatch diamond" style="background:#d4a017"></div>
+    Insights (${insightCount})
+  </div>`;
+}
+legendEl.innerHTML = legendHTML;
+
+// Controls
+const controlsEl = document.getElementById('controls');
+const UNCOLORED = new THREE.Color('#7ab8f5');
+let clusteringVisible = true;
+
+let controlsHTML = '<label><input type="checkbox" id="toggleClustering" checked> Show Clustering</label>';
+if (hasInsights) {
+  controlsHTML += '<label style="margin-top:4px"><input type="checkbox" id="toggleInsights" checked> Show Insights</label>';
+}
+controlsHTML += '<button id="copy-preset">Copy Preset JSON</button>';
+controlsEl.innerHTML = controlsHTML;
+
+function applyClusterColors() {
+  if (clusteringVisible) {
+    for (const m of memoryMeshes) {
+      const col = new THREE.Color(clusterColor(m.userData.cluster));
+      m.material.color.copy(col);
+      m.material.emissive.copy(col);
+      m.material.emissiveIntensity = 0.3;
+    }
+    legendEl.style.display = '';
+  } else {
+    for (const m of memoryMeshes) {
+      m.material.color.copy(UNCOLORED);
+      m.material.emissive.copy(UNCOLORED);
+      m.material.emissiveIntensity = 0.4;
+    }
+    legendEl.style.display = 'none';
+  }
+}
+
+document.getElementById('toggleClustering').addEventListener('change', (e) => {
+  clusteringVisible = e.target.checked;
+  applyClusterColors();
+});
+
+if (hasInsights) {
+  document.getElementById('toggleInsights').addEventListener('change', (e) => {
+    const visible = e.target.checked;
+    for (const m of insightMeshes) {
+      m.visible = visible;
+    }
+  });
+}
+
+// Raycaster for hover tooltips
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltipEl = document.getElementById('tooltip');
+let hoveredMesh = null;
+
+function getAllVisibleMeshes() {
+  return [...memoryMeshes, ...insightMeshes.filter(m => m.visible)];
+}
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(getAllVisibleMeshes());
+
+  if (hits.length > 0) {
+    const mesh = hits[0].object;
+    if (hoveredMesh !== mesh) {
+      // Reset previous
+      if (hoveredMesh) {
+        hoveredMesh.material.emissiveIntensity = hoveredMesh.userData.type === 'insight' ? 0.6 : 0.3;
+        hoveredMesh.scale.setScalar(1);
+      }
+      hoveredMesh = mesh;
+      mesh.material.emissiveIntensity = 0.8;
+      mesh.scale.setScalar(1.4);
+    }
+    const p = mesh.userData;
+    const isInsight = p.type === 'insight';
+    const clusterLabel = p.cluster === -1 ? 'Noise' : `Cluster ${p.cluster}`;
+    const tagColor = isInsight ? '#d4a017' : clusterColor(p.cluster);
+    const tagLabel = isInsight ? `Insight (${clusterLabel})` : clusterLabel;
+    const tagHTML = clusteringVisible ? `<div class="cluster-tag" style="background:${tagColor}">${tagLabel}</div><br>` : '';
+    tooltipEl.innerHTML = tagHTML + p.text;
+    tooltipEl.style.display = 'block';
+    tooltipEl.style.left = (e.clientX + 16) + 'px';
+    tooltipEl.style.top = (e.clientY + 16) + 'px';
+    // Keep tooltip in viewport
+    const rect = tooltipEl.getBoundingClientRect();
+    if (rect.right > innerWidth) tooltipEl.style.left = (e.clientX - rect.width - 16) + 'px';
+    if (rect.bottom > innerHeight) tooltipEl.style.top = (e.clientY - rect.height - 16) + 'px';
+  } else {
+    if (hoveredMesh) {
+      hoveredMesh.material.emissiveIntensity = hoveredMesh.userData.type === 'insight' ? 0.6 : 0.3;
+      hoveredMesh.scale.setScalar(1);
+      hoveredMesh = null;
+    }
+    tooltipEl.style.display = 'none';
+  }
+});
+
+// Click-to-pin tooltips with connector lines
+const pinnedTips = []; // each: { el, mesh, line, dot }
+const pinLinesSvg = document.getElementById('pin-lines');
+let mouseDownPos = null;
+const PIN_COLORS = ['#f47', '#4bf', '#fb3', '#6f6', '#c7f', '#f90', '#3df', '#f6a', '#7ff', '#df5'];
+let pinColorIdx = 0;
+
+function projectToScreen(mesh) {
+  const v = mesh.position.clone().project(camera);
+  return {
+    x: (v.x * 0.5 + 0.5) * innerWidth,
+    y: (-v.y * 0.5 + 0.5) * innerHeight,
+  };
+}
+
+function updatePinLines() {
+  for (const pin of pinnedTips) {
+    const scr = projectToScreen(pin.mesh);
+    // Update dot position
+    pin.dot.style.left = scr.x + 'px';
+    pin.dot.style.top = scr.y + 'px';
+    // Reposition tooltip relative to projected point (offset is viewport fraction)
+    pin.el.style.left = (scr.x + pin.pinOffset.x * innerWidth) + 'px';
+    pin.el.style.top = (scr.y + pin.pinOffset.y * innerHeight) + 'px';
+    // Update line: from dot to nearest edge of tooltip
+    const rect = pin.el.getBoundingClientRect();
+    const tipCx = rect.left + rect.width / 2;
+    const tipCy = rect.top + rect.height / 2;
+    // Clamp to tooltip edge
+    const dx = scr.x - tipCx, dy = scr.y - tipCy;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    let ex, ey;
+    if (absDx / (rect.width / 2) > absDy / (rect.height / 2)) {
+      const side = dx > 0 ? rect.left : rect.right;
+      ex = side; ey = tipCy + dy * Math.abs((side - tipCx) / dx || 0);
+    } else {
+      const side = dy > 0 ? rect.top : rect.bottom;
+      ey = side; ex = tipCx + dx * Math.abs((side - tipCy) / dy || 0);
+    }
+    pin.line.setAttribute('x1', scr.x);
+    pin.line.setAttribute('y1', scr.y);
+    pin.line.setAttribute('x2', ex);
+    pin.line.setAttribute('y2', ey);
+  }
+}
+
+function createPin(hitMesh, pinColor, pinOffset) {
+  const p = hitMesh.userData;
+  const isInsight = p.type === 'insight';
+  const clusterLabel = p.cluster === -1 ? 'Noise' : `Cluster ${p.cluster}`;
+  const tagColor = isInsight ? '#d4a017' : clusterColor(p.cluster);
+  const tagLabel = isInsight ? `Insight (${clusterLabel})` : clusterLabel;
+
+  const el = document.createElement('div');
+  el.className = 'pinned-tooltip';
+  el.style.borderColor = pinColor;
+  const pinTagHTML = clusteringVisible ? `<div class="cluster-tag" style="background:${tagColor}">${tagLabel}</div><br>` : '';
+  el.innerHTML = `<span class="pin-close">&times;</span>` + pinTagHTML + p.text;
+
+  const scr = projectToScreen(hitMesh);
+  el.style.left = (scr.x + pinOffset.x * innerWidth) + 'px';
+  el.style.top = (scr.y + pinOffset.y * innerHeight) + 'px';
+  document.body.appendChild(el);
+
+  // Connector line
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('stroke', pinColor);
+  line.setAttribute('stroke-width', '1.5');
+  line.setAttribute('stroke-opacity', '0.7');
+  pinLinesSvg.appendChild(line);
+
+  // Dot on the node
+  const dot = document.createElement('div');
+  dot.className = 'pin-dot';
+  dot.style.borderColor = pinColor;
+  dot.style.background = pinColor;
+  document.body.appendChild(dot);
+
+  // Paint the 3D mesh the pin color (save originals to restore on close)
+  const origColor = hitMesh.material.color.clone();
+  const origEmissive = hitMesh.material.emissive.clone();
+  const meshPinColor = new THREE.Color(pinColor);
+  hitMesh.material.color.copy(meshPinColor);
+  hitMesh.material.emissive.copy(meshPinColor);
+
+  const pinObj = { el, mesh: hitMesh, line, dot, origColor, origEmissive, pinOffset };
+
+  // Drag support
+  let dragStart = null;
+  el.addEventListener('mousedown', (ev) => {
+    if (ev.target.closest('.pin-close')) return;
+    ev.preventDefault(); ev.stopPropagation();
+    dragStart = { mx: ev.clientX, my: ev.clientY, ox: pinOffset.x, oy: pinOffset.y };
+    el.classList.add('dragging');
+    const onMove = (me) => {
+      pinOffset.x = dragStart.ox + (me.clientX - dragStart.mx) / innerWidth;
+      pinOffset.y = dragStart.oy + (me.clientY - dragStart.my) / innerHeight;
+    };
+    const onUp = () => {
+      dragStart = null;
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  el.querySelector('.pin-close').addEventListener('click', () => {
+    el.remove(); line.remove(); dot.remove();
+    hitMesh.material.color.copy(origColor);
+    hitMesh.material.emissive.copy(origEmissive);
+    const idx = pinnedTips.indexOf(pinObj);
+    if (idx !== -1) pinnedTips.splice(idx, 1);
+  });
+  pinnedTips.push(pinObj);
+}
+
+renderer.domElement.addEventListener('mousedown', (e) => {
+  mouseDownPos = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('mouseup', (e) => {
+  if (!mouseDownPos) return;
+  const dx = e.clientX - mouseDownPos.x;
+  const dy = e.clientY - mouseDownPos.y;
+  if (dx * dx + dy * dy > 25) return;
+
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(getAllVisibleMeshes());
+
+  if (hits.length > 0) {
+    const hitMesh = hits[0].object;
+    const scr = projectToScreen(hitMesh);
+    const pinOffset = { x: (e.clientX - scr.x + 16) / innerWidth, y: (e.clientY - scr.y + 16) / innerHeight };
+    const pinColor = PIN_COLORS[pinColorIdx % PIN_COLORS.length];
+    pinColorIdx++;
+    createPin(hitMesh, pinColor, pinOffset);
+  }
+});
+
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    for (const pin of pinnedTips) {
+      pin.el.remove(); pin.line.remove(); pin.dot.remove();
+      pin.mesh.material.color.copy(pin.origColor);
+      pin.mesh.material.emissive.copy(pin.origEmissive);
+    }
+    pinnedTips.length = 0;
+  }
+});
+
+// Resize
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Copy Preset JSON
+document.getElementById('copy-preset').addEventListener('click', () => {
+  const preset = {
+    pins: pinnedTips.map(pin => ({
+      pointId: pin.mesh.userData.id,
+      color: pin.el.style.borderColor,
+      offset: { x: +pin.pinOffset.x.toFixed(4), y: +pin.pinOffset.y.toFixed(4) },
+    })),
+    camera: {
+      position: { x: +camera.position.x.toFixed(4), y: +camera.position.y.toFixed(4), z: +camera.position.z.toFixed(4) },
+      target: { x: +controls.target.x.toFixed(4), y: +controls.target.y.toFixed(4), z: +controls.target.z.toFixed(4) },
+    },
+    clustering: clusteringVisible,
+    insights: hasInsights ? (document.getElementById('toggleInsights')?.checked ?? true) : undefined,
+  };
+  navigator.clipboard.writeText(JSON.stringify(preset, null, 2)).then(() => {
+    const btn = document.getElementById('copy-preset');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Preset JSON'; btn.classList.remove('copied'); }, 2000);
+  });
+});
+
+// Apply presets on load
+function applyPresets() {
+  if (!PRESETS) return;
+
+  // 1. Toggle states
+  if (PRESETS.clustering === false) {
+    clusteringVisible = false;
+    document.getElementById('toggleClustering').checked = false;
+    applyClusterColors();
+  }
+  if (hasInsights && PRESETS.insights === false) {
+    const cb = document.getElementById('toggleInsights');
+    if (cb) {
+      cb.checked = false;
+      for (const m of insightMeshes) m.visible = false;
+    }
+  }
+
+  // 2. Camera
+  if (PRESETS.camera) {
+    const cp = PRESETS.camera.position;
+    const ct = PRESETS.camera.target;
+    if (cp) camera.position.set(cp.x, cp.y, cp.z);
+    if (ct) controls.target.set(ct.x, ct.y, ct.z);
+    controls.update();
+  }
+
+  // 3. UI visibility
+  if (PRESETS.ui) {
+    const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+    if (PRESETS.ui.config === false) hide('config-panel');
+    if (PRESETS.ui.controls === false) hide('controls');
+    if (PRESETS.ui.legend === false) hide('legend');
+    if (PRESETS.ui.info === false) hide('info');
+    if (PRESETS.ui.title === false) hide('run-name');
+  }
+
+  // 4. Pinned tooltips
+  if (PRESETS.pins && PRESETS.pins.length > 0) {
+    const idToMesh = {};
+    for (const m of [...memoryMeshes, ...insightMeshes]) {
+      idToMesh[m.userData.id] = m;
+    }
+    for (const pinDef of PRESETS.pins) {
+      const hitMesh = idToMesh[pinDef.pointId];
+      if (!hitMesh) continue;
+      const pinColor = pinDef.color || PIN_COLORS[pinColorIdx % PIN_COLORS.length];
+      pinColorIdx++;
+      const raw = pinDef.offset || { x: 0.015, y: -0.02 };
+      // Auto-detect old pixel offsets (abs > 2) vs new viewport fractions
+      const pinOffset = (Math.abs(raw.x) > 2 || Math.abs(raw.y) > 2)
+        ? { x: raw.x / innerWidth, y: raw.y / innerHeight }
+        : { x: raw.x, y: raw.y };
+      createPin(hitMesh, pinColor, pinOffset);
+    }
+  }
+}
+applyPresets();
+
+// Animate
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  updatePinLines();
+}
+animate();
+</script>
+</body>
+</html>

@@ -3,46 +3,42 @@ title: "Zero-Shot Latent Space Steering: Part 1"
 description: "Exploring how to turn embedded texts into an insight powerhouse"
 draft: false
 pubDate: 2026-04-17
-tags: ["embeddings", "rag", "llm", "latent-space"]
+tags: ["embeddings", "rag", "llm", "latent-space", "vectorization", "vectors"]
 ---
 
 import { Image } from 'astro:assets';
-import usageLimits from './latent-space-steering-part-1/usage-limits.png';
-import giphy from './latent-space-steering-part-1/giphy.gif';
+import firstClusteringImage from './latent-space-steering-part-1/firstClustering.png';
+import secondClusteringImageWIdeas from './latent-space-steering-part-1/secondClusteringImageWIdeas.png';
+import transitionsThroughHigherAlphas from './latent-space-steering-part-1/transitionsThroughHigherAlphas.gif';
+import InteractiveEmbed from '../../components/InteractiveEmbed.astro';
 import EmojiTextFlashAnimation from '../../components/animations/EmojiTextFlashAnimation.tsx';
 import SequentialTextGlow, { GlowSegment } from '../../components/animations/SequentialTextGlow.tsx';
 import EmojiStretchBlur from '../../components/animations/EmojiStretchBlur.tsx';
 import LightningStrike from '../../components/animations/LightningStrike.tsx';
 import EmojiExpand from '../../components/animations/EmojiExpand.tsx';
+import Collapsible from '../../components/Collapsible.astro';
+import originalPreDream from './latent-space-steering-part-1/OriginalPreDream.png'
+import alpha2 from './latent-space-steering-part-1/alpha2.png'
+import alpha5 from './latent-space-steering-part-1/alpha5.png'
+import alpha10 from './latent-space-steering-part-1/alpha10.png'
+import alpha20 from './latent-space-steering-part-1/alpha20.png'
+import alpha200 from './latent-space-steering-part-1/alpha200.png'
+import fearAndUncertainty from './latent-space-steering-part-1/fearAndUncertainty.png'
+import joyAndCandy from './latent-space-steering-part-1/joyAndCandy.png'
 
-## Dime a Dozen?
-I’m trying to come up with a hook for my intro to this blog post. Thankfully, that’s actually the point of the blog post.
+## AI that's got your Back
 
-It’s about leveraging AI to help automate the process of coming up with ideas. Not just any random “dime a dozen” ideas, but the sometimes subtle, yet unique insights which carry the potential to make a difference.
+What if you woke up tomorrow and your AI tapped you on the shoulder? "Hey, I think I figured out what's going on with your difficult coworker."
 
-As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, <EmojiTextFlashAnimation client:visible emoji="💡" color="#ca8a04" triggerAt={0.25}>“to be human is to come up with ideas”</EmojiTextFlashAnimation>.
+Or, "I was mulling over your budget last night, and I wonder if those 5 car leases you're paying are the problem."
 
-And it’s not just a human quirk. Without new ideas, nothing moves forward! Not this blog post, not technology, not society; heck not even personal improvement can happen without them. We must always be connecting the dots; it’s the foundation of experimentation and discovery.
+Right now, AI doesn't think unprompted, nor can it make connections you don't hand-feed it. I want to flip that; to build an AI that thinks about you when you're not around, the way a good friend does, and occasionally surfaces something worth hearing.
 
-Some ideas change the world, like <SequentialTextGlow triggerAt={0.25} client:visible stepMs={450}>“what if <GlowSegment color="#22c55e">matter</GlowSegment> and <GlowSegment color="#3b82f6">energy</GlowSegment> are the <GlowSegment color="#ca8a04">same thing</GlowSegment>?”</SequentialTextGlow> (Einstein).
+This post is about a small experiment toward that goal. Getting AI to "mull things over" and come out with new ideas worth sharing, using a new technique.
 
-Sometimes ideas are far less earth-shattering, like “I should stop loading my dishwasher that way.”
+As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, <EmojiTextFlashAnimation client:visible emoji="💡" color="#ca8a04" triggerAt={0.25}>“to be human is to come up with ideas.”</EmojiTextFlashAnimation> And it's not just a human quirk; without new ideas, nothing moves forward. Not technology, not society, not personal growth. Even this blog post doesn't exist without them.
 
-But any idea can be valuable, big or small. If it calls out a new connection that leads to more effective behavior, it’s a good idea. In Einstein’s case, we understand the universe better. In my dishwasher case, I save money and time doing the dishes.
-
-The way AI currently works is that we come to it with a request or thought. But what if, instead of you pinging your AI chatbot, it pings you sometimes, and says things like:
-
-“Hey! I think I just realized how you could solve that problem with your difficult co-worker!”
-
-Or
-
-“<EmojiExpand client:visible emoji="💥" speed="fast" triggerAt={0.25}>OMG</EmojiExpand>. I got a new idea for your business - check this out…”
-
-Or
-
-“I was thinking about that war in the middle east; I wonder if anyone has considered this angle…”
-
-Much like a friend who knows you and thinks about you even when you’re not together. It processes things when you’re not around, and comes up with new ideas, new insights, that may be helpful to you.
+Some ideas change the world ("<SequentialTextGlow triggerAt={0.25} client:visible stepMs={450}>what if <GlowSegment color="#22c55e">matter</GlowSegment> and <GlowSegment color="#3b82f6">energy</GlowSegment> are the <GlowSegment color="#ca8a04">same thing</GlowSegment>?”</SequentialTextGlow>).  Most are far humbler ("I should stop loading my dishwasher that way"). But any idea is valuable if it surfaces a new connection that leads to more effective action. Einstein got us a better understanding of the universe. I saved time on dishes.
 
 ## <LightningStrike client:visible triggerAt={0.25}>The Spark</LightningStrike>
 
@@ -52,13 +48,13 @@ How human ideation works is not a fully understood topic. But according to <a hr
 
 I’ve tried to force AI to do this, and sometimes it comes up with a great idea. But in my experience, this is **always** because I gave it multiple pieces of information that it drew a new insight out of. In other words, I have to show up with the beginnings of an idea, usually by presenting two different concepts that are loosely related. I provide the spark.
 
-As an example, I present to you my highly contrived scenario: Say that I love cars. Say I also have budget issues. Now, if I just told an AI that I have budget issues, it would give me generic budgeting advice. But if instead I told it that I like cars, and added that I also have budget issues… it would consider those things potentially related and come up with the idea that I may be spending too much on cars.
+As an example, I present to you my highly contrived scenario: Say that I love cars. Say I also have budget issues. If I simply told an AI that I have budget issues, it would give me generic budgeting advice. But if instead I told it that I like cars, and added that I *also* have budget issues in the same prompt… it would consider those things potentially related and come up with the idea that I may be spending too much on cars.
 
 We have to bridge the gaps for AI to realize there may be a connection there. We have to provide the spark.
 
 And we need to give AI a way to provide its own spark.
 
-What if I woke up and my AI tapped me on the shoulder and said, “Jeff, you told me awhile back that you love cars. Yesterday you also said you’re struggling with your budget. Let me ask you this… are you buying a lot of cars? Because that might be your problem.”
+Imagine the AI from the opening, reasoning out loud: "Jeff, you told me a while back that you love cars… Yesterday you also said you’re struggling with your budget. Let me ask you this… are you buying a lot of cars? Because that might be your problem.”
 
 That’s what I’m after. And I want a ***cheap, simple*** way to go about getting AI to do this.
 
@@ -70,24 +66,150 @@ Check out <a href="https://www.deepset.ai/blog/the-beginners-guide-to-text-embed
 
 For instance, here is a 3D representation of a bunch of different text blurbs taken out of a conversation (let’s call it the **“dude conversation”**) between two guys about cars, travel, and music. I’ve highlighted some of the blurbs for illustration:
 
-
-<Image src={usageLimits} alt="Claude settings panel showing weekly usage limits and additional features" loading="eager" fetchpriority="high" class="rounded border border-slate-200" />
-
-And a GIF (referenced with a plain `<img>` tag — `astro:assets`' `<Image>` component
-would re-encode it and drop the animation):
-
-<img src={giphy.src} alt="Animated demo" class="rounded border border-slate-200" />
-
-And an interactive HTML demo, embedded in an iframe:
-
-<iframe
-  src="/blog/latent-space-steering-part-1/latent-space-steering-part-1-example-embedded-page.html"
-  title="Run comparison"
-  loading="lazy"
-  class="w-full rounded border border-slate-200"
-  style="height: 600px;"
+<InteractiveEmbed
+  src="/blog/latent-space-steering-part-1/blog_viz_1.html"
+  title="Dude conversation: 3D embedding viewer"
+  caption="Dude conversation: 3D embedding viewer"
 />
 
-```ts
-const example = 42;
-```
+Feel free to click and drag, select other points, or delete existing ones in that graph, if you want to understand the context of the conversation.
+
+Every one of those bubbles represents a section of text, taken out of that conversation, and converted into a text embedding based on its content, theme, topic, style, etc… Basically, the distance between two embeddings (or bubbles, in the image) represents how different the texts are from one another. Closer = more similar. Farther away = more different.
+
+This is nothing new. Text embeddings have been around for about a decade, longer if we stretch the definition. Check out <a href="https://medium.com/@haejiyun/from-one-hot-to-transformers-the-evolution-of-text-embeddings-f5ae372fabcd" target="_blank" rel="noopener noreferrer">this article</a> to learn how they’ve evolved.
+
+What's less understood is how to use them creatively. So - How does this relate to idea generation? Glad you asked.
+
+## Baskets of Thoughts
+
+The goal here is to group together a few memories for the AI to read together, so that it can come up with new connections - sparks of insight - on its own. A very straightforward way to do this is by grouping embeddings together, and presenting them to the AI along with a prompt like, “read all these, and propose a new idea based on any interesting connections you see”. Let me explain.
+
+Imagine you were one of the guys in the dude conversation. You would have a set of memories about that conversation. Your brain might group the memories of that conversation into different baskets. Say:
+- Travel
+- Cars
+- Music
+
+When you’re brainstorming later, and you are trying to solve a travel problem like where you should travel to next, your brain may access the “Travel” memories for inspiration.
+
+We can do that with text embeddings! Since they're numbers, this is actually pretty mathematically easy. This isn’t new either. There are different algorithms, but I’ll be using a combo of UMAP and HDBSCAN (<a href="https://medium.com/@ps.deeplearning.training/hdbscan-clustering-and-umap-visualisation-f31e653f7218" target="_blank" rel="noopener noreferrer">read more about them here</a>). Here’s how these bad boys look when grouped into similar baskets using that algorithm combo:
+
+<Image src={firstClusteringImage} alt="Embeddings clustered by color coding" loading="eager" fetchpriority="high" class="rounded border border-slate-200"/>
+
+Each color represents a different cluster (or basket) of texts. All bubbles of that color are part of that cluster. And if you scan over each node in a cluster, you’ll see some patterns emerge about what that cluster is generally about.
+
+We have this dark orange cluster at the bottom with nodes that always mention “Japan,” and are usually talking about beauty. We have a purple cluster in the upper left hand corner that’s generally about the challenges of being a musician. And we’ve got this vertical green cluster on the right that’s all about cars and mechanic work.
+
+Now let’s see what kind of ideas we can get an AI to generate for each cluster. We’ll put all the texts in the cluster into a Claude prompt, and ask it to come up with a new idea. I’ve developed (or rather, AI has developed) a script to do this for me.
+
+<Image src={secondClusteringImageWIdeas} alt="Clustered embeddings with LLM generated ideas (one per cluster) added" loading="eager" fetchpriority="high" class="rounded border border-slate-200"/>
+
+Meh. I’d say some of the ideas, “car restoration and music production hybrid,” “motivation map for creativity,” and “Japan trip travelogue,” are at most mildly interesting.
+
+They are what you might expect an AI to generate from a clump of texts that are already relatively similar. And there are a few barriers to helping AI be that insightful friend we’re after if we used this approach:
+
+1. The clusters will never change - so the idea fuel will always remain the same
+2. There is unlikely to be much outside the box thinking here, as the texts are already clustered by high similarity. Often, ideas come from hidden, or subtle similarity between concepts, not overt, obvious similarities.
+
+## Keep Dreamin’
+
+We can overcome these hurdles and supercharge AI’s idea-fuel.
+
+We’ll bring three known concepts together. Human dreaming, anisotropic scaling, and vector projection. Don’t worry if you don’t know those last two terms. Basically we’re going to mimic one understanding of human dreaming by taking a theme and distorting the text embeddings around it.
+
+*Then* we’ll ask the AI to come up with ideas.
+
+Now I’ll be clear upfront that I am not the first person to want to use the “dream” analogy for my AI project. <a href="https://arxiv.org/html/2603.14517v1#:~:text=We%20propose%20SleepGate%2C%20a%20biologically,%2Dvalue%20(KV)%20cache." target="_blank" rel="noopener noreferrer">Ying Xie</a>, and <a href="https://artgor.medium.com/paper-review-dreamllm-synergistic-multimodal-comprehension-and-creation-13a238cfc0ed" target="_blank" rel="noopener noreferrer">Andrew Lukyanenko</a>, and still others, have great ideas about how to mimic human dreaming to enhance AI performance. But mine is a bit different in purpose and approach.
+
+When we dream, it’s like we see the world through a distorted lens, making connections between normally dissimilar ideas. That’s where this idea of distorting the text embeddings based on a theme (which I believe is also not new), for the purposes of ideation, comes from. I call it, “**Zero-Shot Latent Space Steering**”.
+
+We’re going to take a theme text, which could be anything. Say, “self-actualization,” or “fear of failure.” We compute the embedding for that theme the same as any other text embedding. Then we find the common components of that theme with every other text embedding in the space, and amplify it.
+
+Then, we cluster the nodes again, to see what ends up grouping together. In essence, we’re distorting these “memories” with the filter of an overarching theme.
+
+Here is an example with the same dataset used before, at different levels of theme amplification (we’ll go with “self-actualization”). Watch what happens as we amplify the theme of "self-actualization" from 2x to 200x.
+
+Original, non-dreaming:
+<figure class="relative my-6 not-prose">                                                                                                                                                                       
+  <img src={transitionsThroughHigherAlphas.src} alt="…" class="rounded border border-slate-200 w-full" />
+  <figcaption class="absolute bottom-2 left-2 bg-black/70 text-white text-sm px-2 py-1 rounded">                                                                                                               
+    Zero-Shot Latent Space Steering - Ramping up α for theme "Self-Actualization"
+  </figcaption>                                                                                                                                                                                                
+</figure>
+
+See how the original clusters start to intermix - meaning you see a lot of different color blobs mixed together now. That's not random - it's because the way each text chunk relates to the theme of "self-actualization" is different from a neutral embedding space.
+
+Now let’s generate new clusters and new ideas, based on this new “self-actualization” version of the embeddings. This one is interactive - feel free to mess around in there:
+
+<InteractiveEmbed
+  src="/blog/latent-space-steering-part-1/blog_viz_2.html"
+  title="Dude conversation, self-actualization steering: 3D embedding viewer"
+  caption="Self-Actualization steered text embeddings and cluster-based LLM generated ideas"
+/>
+
+Now I may be biased towards this approach to automated ideation, but I like these ideas a lot better than the ones we saw with original space clustering.
+
+Let’s try another, different kind of steering theme. “Fear and doubt about the future”:
+
+<Image src={fearAndUncertainty} alt="Embedding based LLM ideas for clusters coming from a theme of 'Fear and doubt about the future'" loading="eager" fetchpriority="high" class="rounded border border-slate-200"/>
+
+Note that the ideas generated are not directly inspired by the theme (“self-actualization” or “fear and doubt about the future”). Instead, the theme splits texts and embeddings along the theme’s conceptual axis - grouping them based on their relationship to the theme. The texts themselves don’t change, just how they’re combined.
+
+My opinion is that these ideas are sufficiently different from the ones generated from the “self-actualization” steering example to raise eyebrows.
+
+Finally, to get some ideas along a weirder axis, let’s do the theme “joy and candy”:
+
+<Image src={joyAndCandy} alt="Embedding based LLM ideas for clusters coming from a theme of 'joy and candy'" loading="eager" fetchpriority="high" class="rounded border border-slate-200"/>
+
+I didn’t pin all of the ideas, but these two stood out as quite unique and interesting to me (compared to the others).
+
+The point is, a theme axis can be weird (like “joy and candy”) as long as there is some thread of truth behind it which the embeddings could relate to in different ways. This is the spirit of creativity, brought into large language models.
+
+## So what?
+
+Zero-Shot Latent Space Steering wasn't just a fun idea to explore (though it was pretty fun). It hints at something bigger: a way to bring disparate concepts together in a meaningful way, at machine speed.
+
+Think about what AI already does. It outpaces seasoned engineers at coding, digests legal documents in seconds, and can run and summarize a hundred web searches in the time it takes you to tie your shoes. Now imagine that same speed and scale applied not to retrieval or execution, but to ideation itself.
+
+Ask AI today how to solve climate change, and it will hand you back the theories already in circulation. But an AI that can ideate, one that can notice the subtle, non-obvious connections between things, might surface angles no one has tried yet. If AI can accelerate insight the way it's accelerated cancer detection and protein folding, that's a different kind of tool than what we have now.
+
+That possibility is what keeps me tinkering.
+
+<Collapsible title="Loose Ends - Click to Expand">
+
+Since this experiment was meant to be quick and small, the results leave some unanswered questions, which I hope to address some day in the future.
+
+I did this experiment on very little data - 200 text snippets. All of this text could fit into a modern LLM's context window easily. The point of the experiment is that we can bring disparate texts together in a larger knowledge base, cheaply.
+
+Also, the more text snippets this is used with, the more impractical this particular approach becomes. It needs to be leveraged in a different context, possibly with structures like Graph RAG or RAPTOR implemented.
+
+The dataset is from this LoCoMo repository, a couple-years-old framework for evaluating long term conversational memory - it’s all AI generated, but was a good starting point for a quick experiment. But future experiments should play with real data, potentially seeded with meaningful connections that the AI is tasked with finding.
+
+In addition, there is another angle by which you can group embeddings based on a “theme” that is already used widely - you take a “search text” and calculate its embedding. Then you find what’s closest to it. Zero-Shot Latent Space Steering works in a similar way, but the difference is that it creates natural clusters based on their relationship to the theme. Even things that are unrelated to the theme are grouped differently based on how they’re unrelated to the theme.
+
+Not all ideas generated this way are valuable. To avoid high LLM usage costs, there should be an efficient way of determining, as early as possible in the pipeline, how high the likelihood is that a particular cluster is going to produce a valuable idea. This may be purely mathematical, or it may involve a lighter-weight LLM as a judge.
+
+Finally, the themes were conceived by me. A mechanism for identifying potentially useful themes would have to be tested. Perhaps an LLM with a background in what the data is about. Perhaps a repository of themes that are known to often produce good results. Or perhaps math could be used to surface not a text-based theme but a potentially useful vector-based theme.
+
+All of these loose ends seem very surmountable. Which makes me excited for the potential of Zero-Shot Latent Space Steering.
+
+## Final Thoughts
+
+I've already started having it look at a ton of my own AI conversation messages, and it's come up with some actionable insights for my life that are pretty fascinating. I want to develop a more sophisticated, scalable approach, but for now this is a fun playground.
+
+Thanks for reading!
+
+</Collapsible>
+
+<Collapsible title="Alternatives - Click to Expand">
+
+There are plenty of other ways to get texts of different types to come together in an AI’s mind. There is Graph RAG (<a href="https://arxiv.org/abs/2404.16130" target="_blank" rel="noopener noreferrer">see this graph RAG approach to information retrieval</a>), there are ways to use LLMs to generate hierarchies of meaning (see <a href="https://arxiv.org/abs/2401.18059?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">RAPTOR</a>), and of course, you could just randomly select texts from a knowledge base like the one above to see if an AI comes up with anything interesting.
+
+But graph RAG can be misapplied as a heavy-handed way to do what text embeddings already do. If a text has the word “Japan” in it, and another text has “Tokyo” in it, those two texts will be related in vector space already. You could query “Japan” and get both, just as you could with a graph database. It seems a little heavy-handed, unless you need very structured, strict relationships.
+
+Using LLMs, on the other hand, to summarize texts into ever growing hierarchies, is very compute-heavy. To generate ideas from these would likely also turn out to be very compute-heavy, because this only brings texts together at the highest level of the hierarchy, missing the potential connections in the nuanced details of the individual texts. Thus, iterative exploration of the texts may be required.
+
+Finally, random selection is likely a dead end. What makes Zero-Shot Latent Space Steering more effective is that it’s not randomly grouping texts together; they’re grouped by a theme. Theoretically, grouping by theme will have a much greater likelihood of surfacing relevant connections between concepts than random selection, making thematic steering much more cost effective.
+
+Both of those approaches, however, seem like a great environment in which “Zero-Shot Latent Space Steering” could be made more efficient and effective.
+
+</Collapsible>

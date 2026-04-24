@@ -203,7 +203,38 @@ import MyViz from '../../components/MyViz.tsx';
 
 Props must be JSON-serializable (they cross the SSR→client boundary).
 
-## 9. Scroll-triggered text animations
+## 9. Embedding interactive HTML demos
+
+Self-contained `.html` files (D3 visualizations, canvas sims, exported notebook widgets) embed as iframes via `InteractiveEmbed` — a windowed frame with an "open in new tab" link for viewing the demo at full size.
+
+### How it works
+
+1. Drop the `.html` file into `site/public/blog/<slug>/`. Anything under `public/` ships as-is at the same path — e.g. `site/public/blog/my-post/viz_1.html` is served at `/blog/my-post/viz_1.html`. Do **not** put it under `site/src/content/blog/<slug>/` — Astro's content collection only serves `.md`/`.mdx` from there.
+
+2. Import the component in the MDX and embed it:
+
+   ```mdx
+   import InteractiveEmbed from '../../components/InteractiveEmbed.astro';
+
+   <InteractiveEmbed
+     src="/blog/my-post/viz_1.html"
+     title="3D embedding viewer"
+     caption="Drag to rotate; hover for context; click to pin."
+   />
+   ```
+
+### Props
+
+| Prop | Default | Meaning |
+|---|---|---|
+| `src` | — (required) | Path to the HTML file under `/blog/<slug>/...`. |
+| `title` | — (required) | Accessible title for the iframe (shows in screen readers, dev tools). |
+| `height` | `"600px"` | CSS height for the embed window. Accepts any valid CSS length (`"80vh"`, `"800px"`, etc.). |
+| `caption` | — | Optional caption shown below the frame, next to the "open in new tab" link. |
+
+Add as many `<InteractiveEmbed>`s as the post needs — each one is an independent iframe. The HTML files can assume they own the full viewport; the embed constrains them to the frame.
+
+## 10. Scroll-triggered text animations
 
 Reusable React islands that decorate inline text when it crosses a configurable line in the viewport. They live under `site/src/components/animations/` and share one hook — `useScrollTrigger` — for scroll detection. Each specific effect is its own `.tsx` file so new effects can be added without touching the existing ones.
 
@@ -337,14 +368,14 @@ Three steps:
 - **Island props must be JSON-serializable** (see §8). Numbers, strings, booleans, plain objects — fine. Functions, refs, class instances — no.
 - **`client:visible` is fine for viewport-midpoint triggers.** The component hydrates as it enters the viewport, which is before it crosses the midpoint — the IntersectionObserver is ready in time.
 
-## 10. SEO, feeds, and OG images
+## 11. SEO, feeds, and OG images
 
 - **Per-page metadata:** pass `title`, `description`, optional `ogImage`, optional `tags` to `<Layout>`. Blog posts do this automatically from frontmatter.
 - **Sitemap:** auto-built by `@astrojs/sitemap` at `/sitemap-index.xml`. Includes every generated route.
 - **RSS:** `site/src/pages/rss.xml.ts` emits a feed of non-draft blog posts.
 - **OG images:** `astro-og-canvas` is installed but not wired up yet. A generation pipeline is on the TODO list in the initial work history; for now, ship a static image under `site/public/og/` and reference it via the `ogImage` frontmatter field (or `ogImage` prop to `<Layout>`).
 
-## 11. Gotchas & constraints
+## 12. Gotchas & constraints
 
 - **Pinned `@astrojs/sitemap@3.2.1`.** Newer versions (3.7+) require Astro 5. Don't bump until Astro itself is upgraded.
 - **`trailingSlash: 'never'` + `build.format: 'directory'`.** URLs are `/blogs/hello-world` (no trailing slash), but the build emits `blogs/hello-world/index.html`. CloudFront has a function that maps one to the other — don't change either setting independently.
@@ -353,12 +384,12 @@ Three steps:
 - **MDX over `.md` for interactivity.** Plain `.md` can't import components; `.mdx` can. Use `.mdx` if you expect ever to embed a component.
 - **Node 20 target.** `.nvmrc` says 20. Local dev on 18 currently works but CI builds on 20.
 
-## 12. Deploy flow (quick summary)
+## 13. Deploy flow (quick summary)
 
 - Push to `main` with changes under `site/**` → GitHub Actions builds Astro, syncs to S3, invalidates CloudFront. See `.github/workflows/site.yml`.
 - Demo backend changes (`demos/<name>/backend/**`) and infra changes (`infra/**`) have their own workflows — unrelated to content authoring.
 
-## 13. Common recipes
+## 14. Common recipes
 
 - **Change the site title** → `site/src/consts.ts`.
 - **Add a nav link** → `site/src/layouts/Layout.astro` (the `<nav>` block).

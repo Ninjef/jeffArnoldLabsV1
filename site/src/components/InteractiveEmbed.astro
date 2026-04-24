@@ -1,0 +1,43 @@
+---
+interface Props {
+  src: string;
+  title: string;
+  height?: string;
+  caption?: string;
+}
+
+const { src, title, height = '600px', caption } = Astro.props;
+---
+
+<figure class="my-6 not-prose">
+  <div
+    class="relative overflow-hidden rounded-lg border border-slate-300 bg-slate-950 shadow-sm"
+    style={`height: ${height};`}
+  >
+    <iframe
+      src={src}
+      title={title}
+      loading="lazy"
+      class="absolute inset-0 h-full w-full"
+      style="border: 0;"
+    ></iframe>
+    <div
+      class="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm"
+      aria-hidden="true"
+    >
+      <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+      <span>Interactive</span>
+    </div>
+  </div>
+  <figcaption class="mt-2 flex items-baseline justify-between gap-4 text-sm text-slate-500">
+    <span>{caption}</span>
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shrink-0 text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900 hover:decoration-slate-600"
+    >
+      Open in new tab ↗
+    </a>
+  </figcaption>
+</figure>

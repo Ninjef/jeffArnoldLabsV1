@@ -9,6 +9,7 @@ tags: ["meta"]
 import { Image } from 'astro:assets';
 import usageLimits from './template/usage-limits.png';
 import giphy from './template/giphy.gif';
+import InteractiveEmbed from '../../components/InteractiveEmbed.astro';
 
 This is a placeholder post. The blog uses Astro content collections with MDX so
 interactive viz components can be imported inline.
@@ -20,14 +21,13 @@ would re-encode it and drop the animation):
 
 <img src={giphy.src} alt="Animated demo" class="rounded border border-slate-200" />
 
-And an interactive HTML demo, embedded in an iframe:
+And an interactive HTML demo, embedded as a scrollable window. Drop the
+HTML file into `site/public/blog/<slug>/` and point `src` at it:
 
-<iframe
+<InteractiveEmbed
   src="/blog/template/template-example-embedded-page.html"
   title="Run comparison"
-  loading="lazy"
-  class="w-full rounded border border-slate-200"
-  style="height: 600px;"
+  caption="Drag, hover, click — example interactive demo. Replace with your own HTML file."
 />
 
 ```ts

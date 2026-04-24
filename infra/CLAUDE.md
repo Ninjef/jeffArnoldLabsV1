@@ -13,7 +13,7 @@ Deployed as CloudFormation stack `jal-infra` in `us-east-1` (required for CloudF
 | `Distribution` | The CloudFront distribution — origins, cache behaviors, default root object |
 | `CanonicalHostFunction` | CloudFront Function: redirects `www` → apex, maps directory URIs → `index.html` |
 | `ApiPathRewriteFunction` | CloudFront Function: strips `/demos/<name>/api` prefix before forwarding to the demo's API Gateway |
-| `SiteResponseHeadersPolicy` | HSTS (preload), X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy |
+| `SiteResponseHeadersPolicy` | HSTS (preload), X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, Referrer-Policy |
 | `AssetsCachePolicy` / `HtmlCachePolicy` | 1-year immutable for `/_astro/*`, short for HTML |
 | `ApiOriginRequestPolicy` | Forwards cookies, auth headers, query strings to demo API origins |
 | `SiteDeployRole` / `InfraDeployRole` / `DemoDeployRole` | GitHub OIDC roles. Site role is locked to this bucket + invalidations. Infra role only from `main`. |
