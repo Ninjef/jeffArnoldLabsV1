@@ -21,6 +21,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AWS_REGION: us-east-1
     steps:
