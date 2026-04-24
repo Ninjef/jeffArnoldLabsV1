@@ -1,0 +1,9 @@
+# Overview
+
+The blog post site/src/content/blog/latent-space-steering-part-1.mdx has some animations in the beginning. I'd like to remove the animations that are in the non-title sections (so the only one we have is the "Spark" one), and then add a new animation to every single title - please be creative with what each one should look like and be. They should be classy and subtle.
+
+In addition - the spark title's animation is too full-screened. I would like it to be more subtle and happen just to the right of the title ("The Spark") - it should look kinda like a spark that fizzles and sparks outward, disappearing as it goes, not a crazy lightning bolt.
+
+Come up with similar kinds of classy, not too noisy but still curious and noticeable, animations for each of the other titles on the page.
+
+Finally, please remove all buttons / links that lead to the "demos" section of the site. I don't want to link to that yet because I don't have any real demos yet.
