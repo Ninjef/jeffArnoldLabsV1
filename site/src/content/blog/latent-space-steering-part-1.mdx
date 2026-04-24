@@ -11,11 +11,12 @@ import firstClusteringImage from './latent-space-steering-part-1/firstClustering
 import secondClusteringImageWIdeas from './latent-space-steering-part-1/secondClusteringImageWIdeas.png';
 import transitionsThroughHigherAlphas from './latent-space-steering-part-1/transitionsThroughHigherAlphas.gif';
 import InteractiveEmbed from '../../components/InteractiveEmbed.astro';
-import EmojiTextFlashAnimation from '../../components/animations/EmojiTextFlashAnimation.tsx';
-import SequentialTextGlow, { GlowSegment } from '../../components/animations/SequentialTextGlow.tsx';
-import EmojiStretchBlur from '../../components/animations/EmojiStretchBlur.tsx';
-import LightningStrike from '../../components/animations/LightningStrike.tsx';
-import EmojiExpand from '../../components/animations/EmojiExpand.tsx';
+import TitleBackPeek from '../../components/animations/TitleBackPeek.tsx';
+import TitleSparkFizzle from '../../components/animations/TitleSparkFizzle.tsx';
+import TitleNumberShuffle from '../../components/animations/TitleNumberShuffle.tsx';
+import TitleThoughtGather from '../../components/animations/TitleThoughtGather.tsx';
+import TitleDreamRipple from '../../components/animations/TitleDreamRipple.tsx';
+import TitleQuestionClash from '../../components/animations/TitleQuestionClash.tsx';
 import Collapsible from '../../components/Collapsible.astro';
 import originalPreDream from './latent-space-steering-part-1/OriginalPreDream.png'
 import alpha2 from './latent-space-steering-part-1/alpha2.png'
@@ -26,7 +27,7 @@ import alpha200 from './latent-space-steering-part-1/alpha200.png'
 import fearAndUncertainty from './latent-space-steering-part-1/fearAndUncertainty.png'
 import joyAndCandy from './latent-space-steering-part-1/joyAndCandy.png'
 
-## AI that's got your Back
+## <TitleBackPeek client:visible triggerAt={0.25}>AI that's got your Back</TitleBackPeek>
 
 What if you woke up tomorrow and your AI tapped you on the shoulder? "Hey, I think I figured out what's going on with your difficult coworker."
 
@@ -36,11 +37,11 @@ Right now, AI doesn't think unprompted, nor can it make connections you don't ha
 
 This post is about a small experiment toward that goal. Getting AI to "mull things over" and come out with new ideas worth sharing, using a new technique.
 
-As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, <EmojiTextFlashAnimation client:visible emoji="💡" color="#ca8a04" triggerAt={0.25}>“to be human is to come up with ideas.”</EmojiTextFlashAnimation> And it's not just a human quirk; without new ideas, nothing moves forward. Not technology, not society, not personal growth. Even this blog post doesn't exist without them.
+As <a href="https://medium.com/better-humans/how-ideas-are-formed-in-the-mind-e0607ae94097" target="_blank" rel="noopener noreferrer">Dr Gabriel Barsawme said</a>, “to be human is to come up with ideas.” And it's not just a human quirk; without new ideas, nothing moves forward. Not technology, not society, not personal growth. Even this blog post doesn't exist without them.
 
-Some ideas change the world ("<SequentialTextGlow triggerAt={0.25} client:visible stepMs={450}>what if <GlowSegment color="#22c55e">matter</GlowSegment> and <GlowSegment color="#3b82f6">energy</GlowSegment> are the <GlowSegment color="#ca8a04">same thing</GlowSegment>?”</SequentialTextGlow>).  Most are far humbler ("I should stop loading my dishwasher that way"). But any idea is valuable if it surfaces a new connection that leads to more effective action. Einstein got us a better understanding of the universe. I saved time on dishes.
+Some ideas change the world ("what if matter and energy are the same thing?”).  Most are far humbler ("I should stop loading my dishwasher that way"). But any idea is valuable if it surfaces a new connection that leads to more effective action. Einstein got us a better understanding of the universe. I saved time on dishes.
 
-## <LightningStrike client:visible triggerAt={0.25}>The Spark</LightningStrike>
+## <TitleSparkFizzle client:visible triggerAt={0.25}>The Spark</TitleSparkFizzle>
 
 Exploring how AI can come up with new ideas is a topic very close to my heart. But of the myriad ways to try and move the needle on this topic, I opted for a fun, quick experiment to show whether we could do this quickly and cheaply. So let’s get into it.
 
@@ -58,7 +59,7 @@ Imagine the AI from the opening, reasoning out loud: "Jeff, you told me a while 
 
 That’s what I’m after. And I want a ***cheap, simple*** way to go about getting AI to do this.
 
-## Magic Math: Text Embeddings
+## <TitleNumberShuffle client:visible triggerAt={0.25}>Magic Math: Text Embeddings</TitleNumberShuffle>
 
 The next couple sections are background. If you already have a good understanding of text embeddings, you can skip them.
 
@@ -80,7 +81,7 @@ This is nothing new. Text embeddings have been around for about a decade, longer
 
 What's less understood is how to use them creatively. So - How does this relate to idea generation? Glad you asked.
 
-## Baskets of Thoughts
+## <TitleThoughtGather client:visible triggerAt={0.25}>Baskets of Thoughts</TitleThoughtGather>
 
 The goal here is to group together a few memories for the AI to read together, so that it can come up with new connections - sparks of insight - on its own. A very straightforward way to do this is by grouping embeddings together, and presenting them to the AI along with a prompt like, “read all these, and propose a new idea based on any interesting connections you see”. Let me explain.
 
@@ -110,7 +111,7 @@ They are what you might expect an AI to generate from a clump of texts that are 
 1. The clusters will never change - so the idea fuel will always remain the same
 2. There is unlikely to be much outside the box thinking here, as the texts are already clustered by high similarity. Often, ideas come from hidden, or subtle similarity between concepts, not overt, obvious similarities.
 
-## Keep Dreamin’
+## <TitleDreamRipple client:visible triggerAt={0.25}>Keep Dreamin’</TitleDreamRipple>
 
 We can overcome these hurdles and supercharge AI’s idea-fuel.
 
@@ -164,7 +165,7 @@ I didn’t pin all of the ideas, but these two stood out as quite unique and int
 
 The point is, a theme axis can be weird (like “joy and candy”) as long as there is some thread of truth behind it which the embeddings could relate to in different ways. This is the spirit of creativity, brought into large language models.
 
-## So what?
+## So what<TitleQuestionClash client:visible triggerAt={0.25}>?</TitleQuestionClash>
 
 Zero-Shot Latent Space Steering wasn't just a fun idea to explore (though it was pretty fun). It hints at something bigger: a way to bring disparate concepts together in a meaningful way, at machine speed.
 
