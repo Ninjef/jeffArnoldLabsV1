@@ -10,10 +10,7 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
 
 <Layout title={SITE.title} description={SITE.description}>
   <section class="prose prose-slate">
-    <h1>Jeff Arnold Labs</h1>
-    <p>
-      Experiments on Generative AI.
-    </p>
+    <h1>Experiments on Generative AI</h1>
   </section>
 
   {posts.length > 0 && (
