@@ -1,0 +1,163 @@
+---
+title: "Gloriously Underqualified"
+description: "Using AI agents to test a deep learning idea I wasn't qualified to test"
+draft: false
+pubDate: 2026-05-15
+tags: ["ai-agents", "deep-learning", "experiment"]
+---
+
+import { Image } from 'astro:assets';
+import promptTemplates from './gloriously-underqualified/promptTemplates.png';
+import TitleSparkFizzle from '../../components/animations/TitleSparkFizzle.tsx';
+import TitleNumberShuffle from '../../components/animations/TitleNumberShuffle.tsx';
+import TitleThoughtGather from '../../components/animations/TitleThoughtGather.tsx';
+import TitleDreamRipple from '../../components/animations/TitleDreamRipple.tsx';
+import TitleQuestionClash from '../../components/animations/TitleQuestionClash.tsx';
+import TitleRocketLaunch from '../../components/animations/TitleRocketLaunch.tsx';
+import TitleSlotSpin from '../../components/animations/TitleSlotSpin.tsx';
+import CalculatorModelTrainer from '../../components/CalculatorModelTrainer.tsx';
+import PyramidMemoryExplorer from '../../components/PyramidMemoryExplorer.tsx';
+import RepoStructureExplorer from '../../components/RepoStructureExplorer.tsx';
+
+## <TitleQuestionClash client:visible triggerAt={0.25} emoji="🎓" impact="🤷">I’m Not Qualified for This</TitleQuestionClash>
+
+When talking or thinking about fields outside your own expertise, have you ever asked, “Why don’t they try this?” Where “this” is your own idea?
+
+I do all the time, especially in the area of deep learning. This is probably because deep learning feels like one of those artsy sciences. Sure, you must approach it with a strong knowledge of math. But simply trying out new architecture ideas is what led us to the AI revolution we now find ourselves in.
+
+Just look at this small sampling of ways neural networks can be architected! <a href="https://papers.baulab.info/papers/LeCun-1989.pdf" target="_blank" rel="noopener noreferrer">Convolutional Neural Networks</a>, <a href="https://arxiv.org/abs/1406.2661" target="_blank" rel="noopener noreferrer">Generative Adversarial Networks</a>, and the paper that got us some huge wins: <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">Attention Is All You Need</a>. Many more where those came from.
+
+Neural Networks are kind of a sandbox. They’ve got just the right amount of “art” and “science” for me to get excited about them. And yes, I want to throw all my ideas into the hat. But no, I haven’t taken the time to become an expert in the domain.
+
+I used to have only two options. Become smarter at deep learning, or never try out my ideas. But with the powers of Generative AI today… is there a third?
+
+## <TitleThoughtGather client:visible triggerAt={0.25} color="#14b8a6">AI Researcher</TitleThoughtGather>
+
+I’m certainly not the first person to use AI for research. It’s a high-profile use case:
+
+- <a href="https://www.sciencenews.org/article/ai-enabled-science-discovery-insight" target="_blank" rel="noopener noreferrer">A survey of AI used for research</a>
+- <a href="https://today.ucsd.edu/story/nine-breakthroughs-made-possible-by-ai" target="_blank" rel="noopener noreferrer">Health, environment, and creativity breakthroughs by AI</a>
+- <a href="https://stanford.io/4f9DJwN" target="_blank" rel="noopener noreferrer">How LLMs are transforming research</a>
+
+Research may be one of AI’s highest-leverage uses, because better research compounds into better tools, better science, and better AI.
+
+Now imagine if anyone who had any old idea in any old domain could use AI to try it out. Imagine they could **trust the AI to get it right**. Many experiments would fail. But how many great ideas or discoveries might we uncover?
+
+And of course, there is one phrase above that’s doing almost all the work here: **trust the AI to get it right**. My experiment became less about whether the calculator idea worked, and more about what kind of process would make an AI researcher trustworthy at all.
+
+## <TitleNumberShuffle client:visible triggerAt={0.25} color="#2563eb">The Calculating Model</TitleNumberShuffle>
+
+My idea to test was, simply put, embedding a calculator inside a neural network. And yeah, I see you raising your hand, there in the back, asking:
+- Can’t AI already use calculators?
+- So you just want LLMs to be better at doing math?
+
+I answer: “Yes,” and “Not just math.”
+
+First off, yes of course LLMs can use calculators. The way they do it now is by generating text instructions to run either a code script or a calculator interface or whatever tool the developer allows the LLM to request to use.
+
+My idea is not the same thing.
+
+<CalculatorModelTrainer client:visible />
+
+Instead of generating text during an LLM run that triggers a calculator tool call, my idea would have the LLM’s own “brain” (in quotes because it’s not technically a brain) run a calculator mid-inference (or mid-”thought” if you will). This is the difference between a human typing their desired math equation into a calculator, and the human having a chip implanted in their brain that would make all math “obvious” to them.
+
+My hypothesis (ever since I wanted to try this back in 2020) has always been that adding strict, accurate mathematical logic inside the “brain” of the LLM might give it new superpowers in how it thinks. The AI internally wouldn’t just think “if someone asks me a math question I use the calculator,” but instead would think “if there’s benefit for my reasoning in measuring, adding, multiplying, dividing, or performing any other kind of mathematical operation, I’ll use the calculator.”
+
+My theory is that exact symbolic operations could not only improve an LLM’s ability to do math on the fly (something it’s woefully inadequate at right now), but also improve its planning, spatial reasoning, music comprehension, and other forms of structured thought. I don’t know what else it might improve, but it seems like the potential is high. That uncertainty is why I wanted to test the smallest version first.
+
+## <TitleSparkFizzle client:visible triggerAt={0.25} color="#f97316">Researching Above My Weight Class</TitleSparkFizzle>
+
+The calculator idea was only half the experiment. The other half was whether I could use AI agents to investigate it seriously. I did not want an agent to write a toy demo and declare victory. I wanted it to run experiments, notice failures, update its plan, and preserve what it learned.
+
+We ran with a small GPT-2-style (a good ol’ fashioned GenAI model) architecture we could train rapidly, and put a calculator interface inside of it. The inputs / outputs come directly from, and feed directly to, different parts of the network. For those of you who know more about ML, we started with a basic learning approach that circumvents issues with things like calculators in a model.
+
+During inference time (when the model “thinks”), we run the actual calculator. Then during backpropagation (when the model “learns”), we bypass the calculator with estimates of what would’ve made the operation work better. This is hard, but can work, apparently.
+
+We fed text like “8+1=” to the model, and trained it to output the expected text, i.e., “9”.
+
+Let me just summarize some of the first results from different agent runs:
+- Answers are perfect - but it might be ignoring the calculator
+- Yep, it’s just ignoring the calculator. (So we forced it to use the calculator. First decent finding)
+- Can’t learn the calculator - what if we used an oracle? (“Oracle” meaning forcing the calculator path to always receive the correct inputs)
+- Can’t learn the calculator inputs - but oracle outputs work!
+- Oracle outputs work!
+- Oracle outputs work!
+- Oracle outputs work!
+
+Notice anything funny about those results? Do you remember back when LLMs were relatively new? Every once in a while, they’d literally just start repeating themselves, over and over and over again. This was that, but it wasn’t repeating words. It was repeating a research move.
+
+By “oracle outputs work,” I mean the agent kept saying, “Look, I figured something out. The model isn’t really learning how to use the calculator. But I have great news. If we FORCE the calculator to output the right answers, the model gets the answer right. Woo!” (in typical LLM enthusiastic fashion).
+
+It was not for lack of trying to get it to stop. I was manually re-running agent sessions, and I’d often tell the agent things like, “we know oracle outputs work, and it’s a useful control. But nothing else. This is not a research finding. Focus on getting the model to use the calculator properly.” But often, the AI’s memory would fail it, and I’d see it either slip into this hole again, or an entirely new one.
+
+## <TitleDreamRipple client:visible triggerAt={0.25} color="#8b5cf6">Memory is Important</TitleDreamRipple>
+
+My scuffle with agents talking about oracle outputs was to be expected. I had a very rudimentary memory system in place. It was just two folders: “aiAgentProjectTasks,” and “aiAgentWorkHistory.” I thought we’d only need like 6 tasks. But about 17 tasks in without a memory paradigm change, the AI wasn’t making much progress anymore. Each subsequent task had been written by the agent before, and all tasks and task results were available to the agent. But at some point it’s just too much context for the AI to make practical use of.
+
+And although it could build upon the task results that came one task before, it was not building upon the task results that came 2 or 3 tasks before. And thus the inevitable repetition.
+
+Memory is arguably the biggest problem with AI at the moment. We’re all learning firsthand how a lack of proper context for a given prompt leads to burning tokens without serious progress. That’s why we have projects like Letta, Mem0, LangMem, and a host of others. For a good rundown of the importance of AI memory, check out <a href="https://natesnewsletter.substack.com/p/rag-agents-knowledge-layer-architecture" target="_blank" rel="noopener noreferrer">this video</a> by Nate B.
+
+Many leverage multiple concepts like vector databases, graph databases, and time graphs to maximize an AI’s ability to retrieve true, relevant information for every task it needs to perform. 
+
+I didn’t want to use a premade tool or build my own semantic graph retrieval system again (I built such a system, back in 2021 for internal company search). I wanted to directly experience the bottleneck by trying to get around it without fancy engineering. So I evolved this approach towards what looked more like a pyramid:
+
+<PyramidMemoryExplorer client:visible />
+
+I split everything below “Overarching Experiment” into phases. Instead of scanning every task or every experimental result (which the AI could do if it felt the need), it could focus on the phase it’s currently in. A phase was defined by a clear experimental direction (i.e., “Can we train the calculator with suggested inputs first, and then get it to work without the guardrails?”) and experimental results (i.e. a summary of the overall result, plus the raw experimental run data).
+
+Here is a view of the actual phase-based folders / .md files in the project:
+
+<RepoStructureExplorer client:visible />
+
+## <TitleRocketLaunch client:visible triggerAt={0.25}>Takeoff!</TitleRocketLaunch>
+
+With this memory system in place, I could now streamline the experimentation to be more hands off for me. And the results were so much better, until they weren’t.
+
+In Codex, I had three prompt templates to copy/paste into a new agent chat for each portion of the project now:
+
+<Image src={promptTemplates} alt="Three pinned prompt templates named NextPhaseWritingTemplate, NextTaskDiscoveryTemplate, and TaskRunTemplate" loading="lazy" class="mx-auto w-full max-w-sm rounded border border-slate-200" />
+
+This made the process much easier. And because of my Claude.md’s instructions, when a task was done, all the housekeeping was also done. Phase tasks moved to completed, fact sheets updated, task results written, all committed and pushed. All I did was briefly review the results (with fingers crossed!), and queue up the next agent with either a next task discovery prompt, next task run prompt, or next phase writing prompt.
+
+The AI’s context also improved. We got past the “Oracle Outputs Rock!” debacle and learned some more interesting things:
+- The AI’s ability to use the calculator could be retained when the protocol was directly taught or strongly scaffolded.
+- Getting the model to discover that protocol from scratch is very hard as expected - it’s a non-differentiable tool.
+- For addition, because many operand pairs produce the same answer, natural answer loss often identifies the result but not the exact right calculator query.
+- The project supports the thesis that internal calculator use is possible, but has not yet proven robust natural discovery from scratch.
+
+The hard part about this, which I was aware of beforehand, is that a calculator is non-differentiable. That means that when we try to train the model to use the calculator, it can’t quite figure out which direction would have made it get the right answer.
+
+For instance, on the model’s first try (the first try is always awful) at solving “8+1=”, it sent “4+22” to the calculator, how can you tell the model how wrong that calculator query was without directly telling it, “you should have sent 8+1”? Not just that it WAS wrong, but HOW wrong.
+
+Deep networks need to know in which direction their weights must go to get a closer answer. But without literally telling it “you should have done 8+1” (because we want the model to work calculator use into its own thought process), how can you communicate to the model how off its answer was? The answer is: There are lots of ways to try, but it’s hard.
+
+The most encouraging result was that, in a more carefully designed version of the task, the model could learn and retain a calculator-use protocol when the training signal was shaped correctly. The dream wasn’t proven, but the idea also didn’t collapse into nonsense.
+
+So where does it stand at the moment? Well it stands with me being tired of pulling the slot machine handle over and over, and wanting to take a break from this research to eventually come up with a better direction. Hence the blog post.
+
+## <TitleSlotSpin client:visible triggerAt={0.25}>The Slot Machine</TitleSlotSpin>
+
+Every researcher hopes for success. But when you’re not an expert in the field you’re asking AI to research, bad things can happen if you’re not careful.
+
+If your experiment succeeds, you can buckle down and validate that the success is real. You can bring in an expert to make sure the AI didn’t “fake” the success, because now the prize is within reach. But if your experiments fail over and over again, and you don’t fully understand why, there is a temptation to just keep trying stuff.
+
+Sure, the experiment might be failing because what you want to do is impossible. But for all you know, it just might be failing because you haven’t found the right “formula” yet. I did research in undergrad, and I witnessed this with my research professor as well - so it’s not just a problem for laymen.
+
+But the problem is compounded when you don’t have a grasp on the math / science behind the failure. And when an AI agent can just “try something else” each time, you pull the handle again. And again. And again. And each pull might just be a big waste of time if you don’t fully understand the results.
+
+This is the edge that real experts have. It comes back to human judgment. They know when the AI is spinning its wheels on a pipe dream, vs when it’s really onto something.
+
+And so, I suppose I must now pick up some books on deep learning. But first… what if I combined my research on <a href="https://jeffarnoldlabs.com/blogs/latent-space-steering-part-1" target="_blank" rel="noopener noreferrer">“Zero-Shot Latent Space Steering”</a> with my research system?
+
+🤔
+
+<details class="my-8 rounded border border-slate-200 bg-slate-50 p-4">
+  <summary class="cursor-pointer text-lg font-bold text-slate-900">Technical Aside: Memory Still Sucks</summary>
+  <div class="mt-4 space-y-4 text-slate-700">
+    <p>I’ve also noticed that memory is becoming a problem again. The AI is starting to repeat old experiments again. And this leads me to a new insight. The memory problem with LLMs is intrinsic, and not going away. You might think this is a cynical take - after all, I didn’t hook up the more advanced memory systems I talked about earlier. No graph DB, no vector DB, no time-aware memories. Sure, those would have helped.</p>
+    <p>But I’ve realized now that eventually, the AI will start to forget again no matter which of these systems you use. And that’s because they have a finite context window. The more it needs to know beyond its original training set, the more context you just have to jam into that window. So eventually, it’ll fill up.</p>
+    <p>How quickly it fills up when you’re using the best possible memory management solutions out there is the question. But with the furious pace of ML research experimentation I was able to do in this project, context is going to be drifting from foundation models’ baseline knowledge more quickly than ever. Especially when scaled in production, AI agents are going to keep running into context limitations.</p>
+    <p>That’s why I still firmly believe the future of AI relies on fundamental improvements to the internal AI architecture. Ali Behrouz, Meisam Razaviyayn, Peilin Zhong, Vahab Mirrokni came up with an architecture that helps with this called <a href="https://arxiv.org/abs/2512.24695" target="_blank" rel="noopener noreferrer">“Nested Learning”</a>. They created a continual learning module called “Hope,” which shows promise in continual learning, among other things.</p>
+  </div>
+</details>
