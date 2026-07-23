@@ -1,18 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { DEMOS } from '../../demos';
 
-const demos = [
-  {
-    slug: 'memory-steering',
-    title: 'Memory Steering',
-    description: 'Interactive demo of zero-shot latent space steering.',
-  },
-  {
-    slug: 'graph-visualizer',
-    title: 'Graph Visualizer',
-    description: 'Paste a JSON node-edge dataset and explore it as a force-directed graph.',
-  },
-];
+const demos = DEMOS;
 ---
 
 <Layout

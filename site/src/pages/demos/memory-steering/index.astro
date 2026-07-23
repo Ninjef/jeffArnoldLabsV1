@@ -1,14 +1,41 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
+import InteractiveEmbed from '../../../components/InteractiveEmbed.astro';
 ---
 
 <Layout
   title="Memory Steering — Jeff Arnold Labs"
-  description="Interactive demo of zero-shot latent space steering."
+  description="Explore the interactive 3D embedding viewers from Zero-Shot Latent Space Steering."
 >
   <h1 class="text-2xl font-semibold">Memory Steering</h1>
   <p class="mt-4 text-slate-700">
-    Interactive demo placeholder. Frontend will call the backend at
-    <code>/demos/memory-steering/api/*</code>.
+    Interactive 3D embedding viewers from the
+    <a href="/blogs/latent-space-steering-part-1" class="underline">Zero-Shot Latent Space Steering</a>
+    write-up. Click and drag to orbit, select points to read their text, and delete points to
+    declutter the space.
   </p>
+
+  <h2 class="mt-10 text-lg font-semibold">Original embedding space</h2>
+  <p class="mt-2 text-slate-700">
+    Text blurbs from a conversation about cars, travel, and music, embedded and plotted in 3D.
+    Distance between bubbles reflects how different the texts are.
+  </p>
+  <InteractiveEmbed
+    src="/blog/latent-space-steering-part-1/blog_viz_1.html"
+    title="Dude conversation: 3D embedding viewer"
+    caption="Dude conversation: 3D embedding viewer"
+    height="640px"
+  />
+
+  <h2 class="mt-10 text-lg font-semibold">Steered toward “self-actualization”</h2>
+  <p class="mt-2 text-slate-700">
+    The same dataset after amplifying a theme — the embeddings distort and re-cluster along the
+    theme’s conceptual axis, with LLM-generated ideas per cluster.
+  </p>
+  <InteractiveEmbed
+    src="/blog/latent-space-steering-part-1/blog_viz_2.html"
+    title="Dude conversation, self-actualization steering: 3D embedding viewer"
+    caption="Self-actualization steered text embeddings and cluster-based LLM-generated ideas"
+    height="640px"
+  />
 </Layout>

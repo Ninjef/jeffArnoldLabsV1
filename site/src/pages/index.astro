@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import { SITE } from '../consts';
+import { DEMOS } from '../demos';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
@@ -23,6 +24,20 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
             <span class="ml-2 text-sm text-slate-500">
               {post.data.pubDate.toISOString().slice(0, 10)}
             </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {DEMOS.length > 0 && (
+    <section class="mt-12">
+      <h2 class="text-lg font-semibold">Demos</h2>
+      <ul class="mt-4 space-y-3">
+        {DEMOS.map((demo) => (
+          <li>
+            <a href={`/demos/${demo.slug}`} class="underline">{demo.title}</a>
+            <div class="text-sm text-slate-500">{demo.description}</div>
           </li>
         ))}
       </ul>
