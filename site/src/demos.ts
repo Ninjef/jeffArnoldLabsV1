@@ -1,5 +1,5 @@
 // Shared list of interactive demos, surfaced on both the landing page and the
-// /demos index. Demos have no publish date — they're living pages, not posts.
+// /demos index. Demos have no publish date. They're living pages, not posts.
 
 export interface Demo {
   slug: string;
